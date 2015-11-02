@@ -11,45 +11,69 @@ type Category struct {
 	Title    string
 	UrlsFile string
 	PcreFile string
-	Urls     URLs
+	Urls     map[string][]URL
 }
 
 func (c *Category) Print() {
 	fmt.Printf("%v (%v)\n", c.Title, len(c.Urls))
 	fmt.Printf("  urls: %v \n", c.UrlsFile)
 	fmt.Printf("  pcre: %v \n", c.PcreFile)
-	for i, url := range c.Urls {
-		fmt.Printf("    %v: %v\n", i, url)
+	var keys []string
+	for k := range c.Urls {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for i, k := range keys {
+		fmt.Printf("    %v: %v\n", i, c.Urls[k])
 	}
 }
 
 func (c *Category) Load() error {
-	fmt.Printf("Loading '%+v' URLs from '%+v'\n", c.Title, c.UrlsFile)
+	fmt.Printf("Loading '%+v' urls from '%+v'\n", c.Title, c.UrlsFile)
 	if file, err := os.Open(c.UrlsFile); err != nil {
 		return err
 	} else {
 		defer file.Close()
 
+		c.Urls = make(map[string][]URL)
 		scanner := bufio.NewScanner(file)
 		for scanner.Scan() {
-			var url URL
-			url.RawUrl = scanner.Text()
-			if err := url.Parse(); err != nil {
+			if parsed_input_url, err := ParseUrl(scanner.Text()); err != nil {
 				fmt.Println(err)
 				continue
 			} else {
-				c.Urls = append(c.Urls, url)
-				fmt.Printf("%#v\n", url)
+				if urls_in_map, ok := c.Urls[parsed_input_url.Domain]; ok {
+					if urls_in_map[0].Base() {
+						fmt.Printf("removing %v because of %v\n", parsed_input_url, urls_in_map[0])
+					} else if parsed_input_url.Base() {
+						fmt.Printf("replacing %v because of %v\n", urls_in_map, parsed_input_url)
+						c.Urls[parsed_input_url.Domain] = []URL{parsed_input_url}
+					} else {
+						add := true
+						for _, url_in_map := range urls_in_map {
+							if url_in_map.EqualTo(parsed_input_url) {
+								fmt.Printf("removing dublicate %v\n", parsed_input_url)
+								add = false
+								break
+							}
+						}
+						if add {
+							c.Urls[parsed_input_url.Domain] = append(c.Urls[parsed_input_url.Domain], parsed_input_url)
+						}
+					}
+				} else {
+					c.Urls[parsed_input_url.Domain] = []URL{parsed_input_url}
+				}
 			}
 		}
 		if err := scanner.Err(); err != nil {
 			return err
 		}
 		c.Print()
-		sort.Sort(c.Urls)
-		c.Print()
-		c.Urls.Merge()
-		c.Print()
+		//sort.Sort(c.Urls)
+		//c.Print()
+		//c.Urls.Merge()
+		//c.Print()
 		//c.Urls.
 	}
 	return nil

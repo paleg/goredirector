@@ -9,7 +9,7 @@ import (
 
 type Input struct {
 	Chanid string
-	Url    URL
+	RawUrl string
 	IP     string
 	User   string
 	Method string
@@ -27,7 +27,7 @@ func ParseInput(input string) (i Input, err error) {
 	// TODO: check err_url
 	// TODO: CASE_INDEPENDENT
 	// TODO: raw_change()
-	i.Url.RawUrl = splitted[1]
+	i.RawUrl = splitted[1]
 	i.IP = splitted[2]
 	// TODO: check err_user
 	i.User, _ = url.QueryUnescape(splitted[3])
