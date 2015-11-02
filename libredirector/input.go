@@ -7,35 +7,12 @@ import (
 	"strings"
 )
 
-type URL struct {
-	url.URL
-	RawUrl    string
-	Domain    string
-	SubDomain string
-}
-
 type Input struct {
 	Chanid string
 	Url    URL
 	IP     string
 	User   string
 	Method string
-}
-
-func (u *URL) Parse() error {
-	if parsed_url, err := url.Parse(u.RawUrl); err != nil {
-		return err
-	} else {
-		u.URL = *parsed_url
-		splitted := strings.SplitN(u.Host, ".", -1)
-		if len(splitted) < 3 {
-			u.Domain = u.Host
-		} else {
-			u.Domain = strings.Join(splitted[len(splitted)-2:len(splitted)], ".")
-			u.SubDomain = strings.Join(splitted[:len(splitted)-2], ".")
-		}
-	}
-	return nil
 }
 
 func ParseInput(input string) (i Input, err error) {
