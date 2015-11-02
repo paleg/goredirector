@@ -31,28 +31,30 @@ func (c *Category) Print() {
 func (c *Category) Load() error {
 	fmt.Printf("Loading '%+v' urls from '%+v'\n", c.Title, c.UrlsFile)
 	if file, err := os.Open(c.UrlsFile); err != nil {
+		fmt.Printf("Failed to load '%+v' category: %+v\n", c.Title, err)
 		return err
 	} else {
 		defer file.Close()
+		defer fmt.Printf("Loaded '%+v' category\n", c.Title)
 
 		c.Urls = make(map[string][]URL)
 		scanner := bufio.NewScanner(file)
 		for scanner.Scan() {
 			if parsed_input_url, err := ParseUrl(scanner.Text()); err != nil {
-				fmt.Println(err)
+				//fmt.Println(err)
 				continue
 			} else {
 				if urls_in_map, ok := c.Urls[parsed_input_url.Domain]; ok {
 					if urls_in_map[0].Base() {
-						fmt.Printf("removing %v because of %v\n", parsed_input_url, urls_in_map[0])
+						//fmt.Printf("removing %v because of %v\n", parsed_input_url, urls_in_map[0])
 					} else if parsed_input_url.Base() {
-						fmt.Printf("replacing %v because of %v\n", urls_in_map, parsed_input_url)
+						//fmt.Printf("replacing %v because of %v\n", urls_in_map, parsed_input_url)
 						c.Urls[parsed_input_url.Domain] = []URL{parsed_input_url}
 					} else {
 						add := true
 						for _, url_in_map := range urls_in_map {
 							if url_in_map.EqualTo(parsed_input_url) {
-								fmt.Printf("removing dublicate %v\n", parsed_input_url)
+								//fmt.Printf("removing dublicate %v\n", parsed_input_url)
 								add = false
 								break
 							}
@@ -69,12 +71,7 @@ func (c *Category) Load() error {
 		if err := scanner.Err(); err != nil {
 			return err
 		}
-		c.Print()
-		//sort.Sort(c.Urls)
 		//c.Print()
-		//c.Urls.Merge()
-		//c.Print()
-		//c.Urls.
 	}
 	return nil
 }

@@ -20,11 +20,25 @@ func main() {
 	go libredirector.OutWriter(writer_chan)
 	libredirector.WG.Add(1)
 
-	category := libredirector.Category{Title: "AV",
-		UrlsFile: "/home/oleg/iCloud/projects/goredirector/banlists/av/urls",
-		PcreFile: "/home/oleg/iCloud/projects/goredirector/banlists/av/pcre",
+	category_av := libredirector.Category{Title: "AUDIO-VIDEO",
+		UrlsFile: "banlists/audio-video/urls",
 	}
-	category.Load()
+	category_porno := libredirector.Category{Title: "PORNO",
+		UrlsFile: "banlists/porn/urls",
+	}
+	category_chat := libredirector.Category{Title: "CHATS",
+		UrlsFile: "banlists/chats/urls",
+	}
+	category_proxy := libredirector.Category{Title: "PROXY",
+		UrlsFile: "banlists/proxy/urls",
+	}
+	categories := []libredirector.Category{category_av, category_porno, category_chat, category_proxy}
+	for _, c := range categories {
+		go func(c libredirector.Category) {
+			c.Load()
+		}(c)
+	}
+
 	channels = make(map[string]chan *libredirector.Input)
 	for {
 		if line, err := reader.ReadString('\n'); err != nil {
