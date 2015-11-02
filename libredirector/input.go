@@ -9,17 +9,33 @@ import (
 
 type URL struct {
 	url.URL
+	RawUrl    string
 	Domain    string
 	SubDomain string
 }
 
 type Input struct {
 	Chanid string
-	RawUrl string
 	Url    URL
 	IP     string
 	User   string
 	Method string
+}
+
+func (u *URL) Parse() error {
+	if parsed_url, err := url.Parse(u.RawUrl); err != nil {
+		return err
+	} else {
+		u.URL = *parsed_url
+		splitted := strings.SplitN(u.Host, ".", -1)
+		if len(splitted) < 3 {
+			u.Domain = u.Host
+		} else {
+			u.Domain = strings.Join(splitted[len(splitted)-2:len(splitted)], ".")
+			u.SubDomain = strings.Join(splitted[:len(splitted)-2], ".")
+		}
+	}
+	return nil
 }
 
 func ParseInput(input string) (i Input, err error) {
@@ -34,27 +50,11 @@ func ParseInput(input string) (i Input, err error) {
 	// TODO: check err_url
 	// TODO: CASE_INDEPENDENT
 	// TODO: raw_change()
-	i.RawUrl = splitted[1]
+	i.Url.RawUrl = splitted[1]
 	i.IP = splitted[2]
 	// TODO: check err_user
 	i.User, _ = url.QueryUnescape(splitted[3])
 	i.User = strings.ToLower(i.User)
 	i.Method = splitted[4]
-	return
-}
-
-func (i *Input) ParseUrl() (err error) {
-	if parsed_url, perr := url.Parse(i.RawUrl); err != nil {
-		err = perr
-	} else {
-		i.Url.URL = *parsed_url
-		splitted := strings.SplitN(i.Url.Host, ".", -1)
-		if len(splitted) < 3 {
-			i.Url.Domain = i.Url.Host
-		} else {
-			i.Url.Domain = strings.Join(splitted[len(splitted)-2:len(splitted)], ".")
-			i.Url.SubDomain = strings.Join(splitted[:len(splitted)-2], ".")
-		}
-	}
 	return
 }

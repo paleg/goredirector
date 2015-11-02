@@ -20,6 +20,11 @@ func main() {
 	go libredirector.OutWriter(writer_chan)
 	libredirector.WG.Add(1)
 
+	category := libredirector.Category{Title: "AV",
+		UrlsFile: "/home/oleg/iCloud/projects/goredirector/banlists/av/urls",
+		PcreFile: "/home/oleg/iCloud/projects/goredirector/banlists/av/pcre",
+	}
+	category.Load()
 	channels = make(map[string]chan *libredirector.Input)
 	for {
 		if line, err := reader.ReadString('\n'); err != nil {
@@ -28,7 +33,9 @@ func main() {
 			}
 			break
 		} else {
+			// TODO: strings.Trim("\n\r")
 			if input, err := libredirector.ParseInput(line[:len(line)-1]); err != nil {
+				logger.Println("Failed to parse input:", err)
 			} else {
 				// dynamically create separate goroutine for each squid chan-id
 				if _, ok := channels[input.Chanid]; !ok {
@@ -36,7 +43,6 @@ func main() {
 					go libredirector.Checker(input.Chanid, channels[input.Chanid], writer_chan)
 					libredirector.WG.Add(1)
 				}
-				// send input without trailing carriage return
 				channels[input.Chanid] <- &input
 			}
 		}
