@@ -3,14 +3,47 @@ package main
 import (
 	"./libredirector"
 	"bufio"
+	"flag"
+	"fmt"
+	"github.com/spf13/viper"
 	"io"
 	"log"
 	"os"
 )
 
+var (
+	verboseFlag bool
+	debugFlag   bool
+	configFlag  string
+)
+
 var channels map[string]chan *libredirector.Input
 
+func init() {
+	flag.StringVar(&configFlag, "c", "", "config file location")
+}
+
 func main() {
+	flag.Parse()
+
+	viper.SetDefault("gomaxprocs", 0)
+	viper.SetDefault("verbose", false)
+	viper.SetDefault("debug", false)
+
+	if configFlag != "" {
+		viper.SetConfigFile(configFlag)
+	} else {
+		viper.SetConfigName("redirector")
+		viper.AddConfigPath("/etc/squid3")
+		viper.AddConfigPath("/etc/squid")
+		viper.AddConfigPath("./")
+	}
+	if err := viper.ReadInConfig(); err != nil {
+		panic(fmt.Errorf("Fatal error config file: %s \n", err))
+	}
+	fmt.Printf("using config from %v\n", viper.ConfigFileUsed())
+	return
+
 	logger := log.New(os.Stderr, "goredirector|", 0)
 	// read from stdin
 	reader := bufio.NewReader(os.Stdin)
