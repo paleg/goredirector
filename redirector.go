@@ -8,6 +8,8 @@ import (
 	"io"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 )
 
 var (
@@ -24,12 +26,39 @@ func init() {
 	flag.StringVar(&configFlag, "c", "", "config file location")
 }
 
+func configure() {
+	ReadConfig(configFlag)
+	fmt.Printf("Loaded config %#v\n", config)
+	for _, c := range config.Categories {
+		go func(c *libredirector.Category) {
+			c.Load()
+		}(c)
+		libredirector.WG.Add(1)
+	}
+}
+
+func handleSignals() {
+	sigc := make(chan os.Signal, 1)
+	signal.Notify(sigc, syscall.SIGHUP)
+	for {
+		sig := <-sigc
+		fmt.Println("Signal received:", sig)
+		switch sig {
+		case syscall.SIGHUP:
+			fmt.Println("Reloading configuration")
+			configure()
+		}
+	}
+}
+
 func main() {
 	flag.Parse()
-	ReadConfig(configFlag)
-	fmt.Printf("Loaded config %#v\n", config.Categories["SOCNET"])
+	configure()
 
 	logger := log.New(os.Stderr, "goredirector|", 0)
+
+	go handleSignals()
+
 	// read from stdin
 	reader := bufio.NewReader(os.Stdin)
 
@@ -37,13 +66,6 @@ func main() {
 	writer_chan := make(chan string)
 	go libredirector.OutWriter(writer_chan)
 	libredirector.WG.Add(1)
-
-	for _, c := range config.Categories {
-		go func(c *libredirector.Category) {
-			c.Load()
-		}(c)
-		libredirector.WG.Add(1)
-	}
 
 	channels = make(map[string]chan *libredirector.Input)
 	for {

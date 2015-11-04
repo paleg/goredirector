@@ -43,7 +43,9 @@ func (c *Category) Load() error {
 	} else {
 		defer WG.Done()
 		defer file.Close()
-		defer fmt.Printf("Loaded '%+v' category\n", c.Title)
+		defer func() {
+			fmt.Printf("Loaded '%+v' category (%v domains)\n", c.Title, len(c.Urls))
+		}()
 
 		c.Urls = make(map[string][]URL)
 		scanner := bufio.NewScanner(file)

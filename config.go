@@ -85,7 +85,8 @@ func ReadConfig(conf string) error {
 	} else {
 		defer file.Close()
 
-		config.Categories = make(map[string]*libredirector.Category)
+		newconfig := Config{}
+		newconfig.Categories = make(map[string]*libredirector.Category)
 
 		var category string
 		scanner := bufio.NewScanner(file)
@@ -95,15 +96,16 @@ func ReadConfig(conf string) error {
 			if splitted_dash != nil {
 				if strings.HasPrefix(splitted_dash[0], "<") {
 					category = strings.Trim(splitted_dash[0], "<>")
-					config.Categories[category] = &libredirector.Category{Title: category, Log: true, Reverse: false}
+					newconfig.Categories[category] = &libredirector.Category{Title: category, Log: true, Reverse: false}
 				} else {
 					if len(splitted_dash) == 1 {
 						splitted_dash = append(splitted_dash, "")
 					}
-					config.SetOpt(category, splitted_dash[0], splitted_dash[1])
+					newconfig.SetOpt(category, splitted_dash[0], splitted_dash[1])
 				}
 			}
 		}
+		config = newconfig
 	}
 	return nil
 }
