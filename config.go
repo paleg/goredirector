@@ -3,7 +3,6 @@ package main
 import (
 	"./libredirector"
 	"bufio"
-	"fmt"
 	"os"
 	"strings"
 )
@@ -76,10 +75,18 @@ func (c *Config) SetOpt(category string, opt string, value string) {
 	}
 }
 
-func ReadConfig(conf string) (config Config, err error) {
+func (c *Config) LoadCategories() {
+	for _, c := range c.Categories {
+		go func(c *libredirector.Category) {
+			c.Load()
+		}(c)
+		libredirector.WGConfig.Add(1)
+	}
+}
+
+func NewConfig(conf string) (config Config, err error) {
 	file, err := os.Open(conf)
 	if err != nil {
-		fmt.Printf("Failed to open config from %+v: %+v\n", conf, err)
 		return
 	}
 	defer file.Close()
