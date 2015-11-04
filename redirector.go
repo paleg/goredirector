@@ -33,7 +33,7 @@ func configure() {
 		go func(c *libredirector.Category) {
 			c.Load()
 		}(c)
-		libredirector.WG.Add(1)
+		libredirector.WGConfig.Add(1)
 	}
 }
 
@@ -46,6 +46,7 @@ func handleSignals() {
 		switch sig {
 		case syscall.SIGHUP:
 			fmt.Println("Reloading configuration")
+			libredirector.WGConfig.Wait()
 			configure()
 		}
 	}
@@ -65,7 +66,7 @@ func main() {
 	// sync write to stdout
 	writer_chan := make(chan string)
 	go libredirector.OutWriter(writer_chan)
-	libredirector.WG.Add(1)
+	libredirector.WGMain.Add(1)
 
 	channels = make(map[string]chan *libredirector.Input)
 	for {
@@ -83,7 +84,7 @@ func main() {
 				if _, ok := channels[input.Chanid]; !ok {
 					channels[input.Chanid] = make(chan *libredirector.Input)
 					go libredirector.Checker(input.Chanid, channels[input.Chanid], writer_chan)
-					libredirector.WG.Add(1)
+					libredirector.WGMain.Add(1)
 				}
 				channels[input.Chanid] <- &input
 			}
@@ -94,5 +95,6 @@ func main() {
 	for _, ch := range channels {
 		close(ch)
 	}
-	libredirector.WG.Wait()
+	libredirector.WGConfig.Wait()
+	libredirector.WGMain.Wait()
 }

@@ -6,7 +6,7 @@ import (
 
 func Checker(id string, in chan *Input, out chan string) {
 	fmt.Printf("Checker%v started\n", id)
-	defer WG.Done()
+	defer WGMain.Done()
 	for input := range in {
 		if url, err := ParseUrl(input.RawUrl); err != nil {
 			out <- fmt.Sprintf("ParseUrl error: %+v", err)

@@ -2,4 +2,5 @@ package libredirector
 
 import "sync"
 
-var WG sync.WaitGroup
+var WGMain sync.WaitGroup
+var WGConfig sync.WaitGroup

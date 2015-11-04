@@ -41,7 +41,7 @@ func (c *Category) Load() error {
 		fmt.Printf("Failed to load '%+v' category: %+v\n", c.Title, err)
 		return err
 	} else {
-		defer WG.Done()
+		defer WGConfig.Done()
 		defer file.Close()
 		defer func() {
 			fmt.Printf("Loaded '%+v' category (%v domains)\n", c.Title, len(c.Urls))
