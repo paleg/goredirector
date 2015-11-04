@@ -5,7 +5,6 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"github.com/spf13/viper"
 	"io"
 	"log"
 	"os"
@@ -20,29 +19,15 @@ var (
 var channels map[string]chan *libredirector.Input
 
 func init() {
+	flag.BoolVar(&verboseFlag, "v", false, "verbose output")
+	flag.BoolVar(&debugFlag, "d", true, "debug output")
 	flag.StringVar(&configFlag, "c", "", "config file location")
 }
 
 func main() {
 	flag.Parse()
-
-	viper.SetDefault("gomaxprocs", 0)
-	viper.SetDefault("verbose", false)
-	viper.SetDefault("debug", false)
-
-	if configFlag != "" {
-		viper.SetConfigFile(configFlag)
-	} else {
-		viper.SetConfigName("redirector")
-		viper.AddConfigPath("/etc/squid3")
-		viper.AddConfigPath("/etc/squid")
-		viper.AddConfigPath("./")
-	}
-	if err := viper.ReadInConfig(); err != nil {
-		panic(fmt.Errorf("Fatal error config file: %s \n", err))
-	}
-	fmt.Printf("using config from %v\n", viper.ConfigFileUsed())
-	return
+	ReadConfig(configFlag)
+	fmt.Printf("Loaded config %#v\n", config.Categories["SOCNET"])
 
 	logger := log.New(os.Stderr, "goredirector|", 0)
 	// read from stdin
@@ -53,23 +38,11 @@ func main() {
 	go libredirector.OutWriter(writer_chan)
 	libredirector.WG.Add(1)
 
-	category_av := libredirector.Category{Title: "AUDIO-VIDEO",
-		UrlsFile: "banlists/audio-video/urls",
-	}
-	category_porno := libredirector.Category{Title: "PORNO",
-		UrlsFile: "banlists/porn/urls",
-	}
-	category_chat := libredirector.Category{Title: "CHATS",
-		UrlsFile: "banlists/chats/urls",
-	}
-	category_proxy := libredirector.Category{Title: "PROXY",
-		UrlsFile: "banlists/proxy/urls",
-	}
-	categories := []libredirector.Category{category_av, category_porno, category_chat, category_proxy}
-	for _, c := range categories {
-		go func(c libredirector.Category) {
+	for _, c := range config.Categories {
+		go func(c *libredirector.Category) {
 			c.Load()
 		}(c)
+		libredirector.WG.Add(1)
 	}
 
 	channels = make(map[string]chan *libredirector.Input)

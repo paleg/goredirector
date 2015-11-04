@@ -12,6 +12,13 @@ type Category struct {
 	UrlsFile string
 	PcreFile string
 	Urls     map[string][]URL
+	RedirUrl string
+	WorkIP   []string
+	AllowIP  []string
+	WorkID   []string
+	AllowID  []string
+	Log      bool
+	Reverse  bool
 }
 
 func (c *Category) Print() {
@@ -34,6 +41,7 @@ func (c *Category) Load() error {
 		fmt.Printf("Failed to load '%+v' category: %+v\n", c.Title, err)
 		return err
 	} else {
+		defer WG.Done()
 		defer file.Close()
 		defer fmt.Printf("Loaded '%+v' category\n", c.Title)
 
