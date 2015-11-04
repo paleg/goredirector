@@ -26,14 +26,22 @@ func init() {
 	flag.StringVar(&configFlag, "c", "", "config file location")
 }
 
-func configure() {
-	ReadConfig(configFlag)
-	fmt.Printf("Loaded config %#v\n", config)
-	for _, c := range config.Categories {
-		go func(c *libredirector.Category) {
-			c.Load()
-		}(c)
-		libredirector.WGConfig.Add(1)
+var config Config
+
+func configure() error {
+	if newconfig, err := ReadConfig(configFlag); err != nil {
+		fmt.Printf("Failed to load config: %v\n", err)
+		return err
+	} else {
+		fmt.Printf("Loaded config %#v\n", newconfig)
+		for _, c := range newconfig.Categories {
+			go func(c *libredirector.Category) {
+				c.Load()
+			}(c)
+			libredirector.WGConfig.Add(1)
+		}
+		config = newconfig
+		return nil
 	}
 }
 
@@ -45,8 +53,8 @@ func handleSignals() {
 		fmt.Println("Signal received:", sig)
 		switch sig {
 		case syscall.SIGHUP:
-			fmt.Println("Reloading configuration")
 			libredirector.WGConfig.Wait()
+			fmt.Println("Reloading configuration")
 			configure()
 		}
 	}
@@ -54,7 +62,9 @@ func handleSignals() {
 
 func main() {
 	flag.Parse()
-	configure()
+	if err := configure(); err != nil {
+		os.Exit(1)
+	}
 
 	logger := log.New(os.Stderr, "goredirector|", 0)
 

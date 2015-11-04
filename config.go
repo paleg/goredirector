@@ -21,8 +21,6 @@ type Config struct {
 	Categories map[string]*libredirector.Category
 }
 
-var config Config
-
 func FilterComments(in []string) (res []string) {
 	for _, s := range in {
 		if s != "" {
@@ -78,34 +76,33 @@ func (c *Config) SetOpt(category string, opt string, value string) {
 	}
 }
 
-func ReadConfig(conf string) error {
-	if file, err := os.Open(conf); err != nil {
+func ReadConfig(conf string) (config Config, err error) {
+	file, err := os.Open(conf)
+	if err != nil {
 		fmt.Printf("Failed to open config from %+v: %+v\n", conf, err)
-		return err
-	} else {
-		defer file.Close()
+		return
+	}
+	defer file.Close()
 
-		newconfig := Config{}
-		newconfig.Categories = make(map[string]*libredirector.Category)
+	//config := Config{}
+	config.Categories = make(map[string]*libredirector.Category)
 
-		var category string
-		scanner := bufio.NewScanner(file)
-		for scanner.Scan() {
-			line := scanner.Text()
-			splitted_dash := FilterComments(strings.Split(line, " "))
-			if splitted_dash != nil {
-				if strings.HasPrefix(splitted_dash[0], "<") {
-					category = strings.Trim(splitted_dash[0], "<>")
-					newconfig.Categories[category] = &libredirector.Category{Title: category, Log: true, Reverse: false}
-				} else {
-					if len(splitted_dash) == 1 {
-						splitted_dash = append(splitted_dash, "")
-					}
-					newconfig.SetOpt(category, splitted_dash[0], splitted_dash[1])
+	var category string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		splitted_dash := FilterComments(strings.Split(line, " "))
+		if splitted_dash != nil {
+			if strings.HasPrefix(splitted_dash[0], "<") {
+				category = strings.Trim(splitted_dash[0], "<>")
+				config.Categories[category] = &libredirector.Category{Title: category, Log: true, Reverse: false}
+			} else {
+				if len(splitted_dash) == 1 {
+					splitted_dash = append(splitted_dash, "")
 				}
+				config.SetOpt(category, splitted_dash[0], splitted_dash[1])
 			}
 		}
-		config = newconfig
 	}
-	return nil
+	return
 }
