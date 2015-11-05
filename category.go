@@ -39,21 +39,23 @@ func (c *Category) Print() {
 func (c *Category) Load() error {
 	defer WGCategories.Done()
 
-	//ErrorLogger.Printf("Loading '%+v' pcre from '%+v'\n", c.Title, c.PcreFile)
-	if file, err := os.Open(c.PcreFile); err != nil {
-		//ErrorLogger.Printf("Failed to load pcre for '%+v' category: %+v\n", c.Title, err)
-	} else {
-		defer file.Close()
-		//defer func() {
-		//	ErrorLogger.Printf("Loaded '%+v' category (%v pcre)\n", c.Title, len(c.Pcre))
-		//}()
-		scanner := bufio.NewScanner(file)
-		for scanner.Scan() {
-			re := scanner.Text()
-			if compiled, err := regexp.Compile(re); err != nil {
-				//ErrorLogger.Printf("Failed to compile '%v': %v\n", re, err)
-			} else {
-				c.Pcre = append(c.Pcre, compiled)
+	if c.PcreFile != "" {
+		//ErrorLogger.Printf("Loading '%+v' pcre from '%+v'\n", c.Title, c.PcreFile)
+		if file, err := os.Open(c.PcreFile); err != nil {
+			ErrorLogger.Printf("Failed to load pcre for '%+v' category: %+v\n", c.Title, err)
+		} else {
+			defer file.Close()
+			//defer func() {
+			//	ErrorLogger.Printf("Loaded '%+v' category (%v pcre)\n", c.Title, len(c.Pcre))
+			//}()
+			scanner := bufio.NewScanner(file)
+			for scanner.Scan() {
+				re := scanner.Text()
+				if compiled, err := regexp.Compile(re); err != nil {
+					ErrorLogger.Printf("Failed to compile '%v': %v\n", re, err)
+				} else {
+					c.Pcre = append(c.Pcre, compiled)
+				}
 			}
 		}
 	}
