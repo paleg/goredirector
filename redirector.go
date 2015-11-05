@@ -67,11 +67,13 @@ func load_config(sync bool) error {
 			ConsoleLogger.Println("redirector| Failed to set log - '%v'", err)
 			return err
 		}
+		newcfg.LoadFiles()
 		newcfg.LoadCategories(sync)
 		// for immediate GC old config
 		// oldconfig can be nil on inital config load (on start)
 		var oldconfig *Config
 		if oldconfig, config = config, newcfg; oldconfig != nil {
+			oldconfig.AllowURLs = nil
 			for k, _ := range oldconfig.Categories {
 				oldconfig.Categories[k] = nil
 			}
