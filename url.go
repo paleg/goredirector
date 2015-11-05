@@ -65,7 +65,7 @@ func ParseUrl(rawurl string) (URL, error) {
 		}
 		u.Dirs = parsed_url.Path
 		// lets separate two-level domain from N-level subdomains (N>2)
-		splitted := strings.SplitN(host, ".", -1)
+		splitted := strings.SplitN(strings.ToLower(host), ".", -1)
 		if len(splitted) < 3 {
 			u.Domain = host
 		} else {
