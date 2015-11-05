@@ -1,4 +1,4 @@
-package libredirector
+package main
 
 import (
 	"errors"

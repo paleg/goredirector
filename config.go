@@ -1,13 +1,14 @@
 package main
 
 import (
-	"./libredirector"
 	"bufio"
 	"os"
+	"runtime"
 	"strings"
 )
 
 type Config struct {
+	id         int
 	verbose    bool
 	debug      bool
 	error_log  string
@@ -17,7 +18,7 @@ type Config struct {
 	work_id    []string
 	allow_id   []string
 	allow_urls string
-	Categories map[string]*libredirector.Category
+	Categories map[string]*Category
 }
 
 func FilterComments(in []string) (res []string) {
@@ -77,22 +78,24 @@ func (c *Config) SetOpt(category string, opt string, value string) {
 
 func (c *Config) LoadCategories() {
 	for _, c := range c.Categories {
-		go func(c *libredirector.Category) {
-			c.Load()
-		}(c)
-		libredirector.WGConfig.Add(1)
+		c.Load()
 	}
 }
 
-func NewConfig(conf string) (config Config, err error) {
+func catfin(cat *Category) {
+	ConsoleLogger.Printf("Finalizing %v category", cat.Title)
+}
+
+func NewConfig(conf string, id int) (newcfg *Config, err error) {
 	file, err := os.Open(conf)
 	if err != nil {
 		return
 	}
 	defer file.Close()
 
-	//config := Config{}
-	config.Categories = make(map[string]*libredirector.Category)
+	newcfg = new(Config)
+	newcfg.id = id
+	newcfg.Categories = make(map[string]*Category)
 
 	var category string
 	scanner := bufio.NewScanner(file)
@@ -102,12 +105,13 @@ func NewConfig(conf string) (config Config, err error) {
 		if splitted_dash != nil {
 			if strings.HasPrefix(splitted_dash[0], "<") {
 				category = strings.Trim(splitted_dash[0], "<>")
-				config.Categories[category] = &libredirector.Category{Title: category, Log: true, Reverse: false}
+				newcfg.Categories[category] = &Category{Title: category, Log: true, Reverse: false}
+				runtime.SetFinalizer(newcfg.Categories[category], catfin)
 			} else {
 				if len(splitted_dash) == 1 {
 					splitted_dash = append(splitted_dash, "")
 				}
-				config.SetOpt(category, splitted_dash[0], splitted_dash[1])
+				newcfg.SetOpt(category, splitted_dash[0], splitted_dash[1])
 			}
 		}
 	}

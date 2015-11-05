@@ -1,14 +1,16 @@
 package main
 
 import (
-	"./libredirector"
 	"bufio"
 	"flag"
 	"io"
 	"io/ioutil"
 	"log"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 )
 
@@ -18,9 +20,10 @@ var (
 	configFlag  string
 )
 
-var config Config
+var config *Config
+var configN = 1
 
-var channels map[string]chan *libredirector.Input
+var channels map[string]chan *Input
 
 var ConsoleLogger *log.Logger
 var ChangeLogger *log.Logger
@@ -42,21 +45,50 @@ func handleSignals() {
 		ErrorLogger.Println("Signal received:", sig)
 		switch sig {
 		case syscall.SIGHUP:
-			libredirector.WGConfig.Wait()
-			ErrorLogger.Println("Reloading configuration")
-			if newcfg, err := NewConfig(configFlag); err != nil {
-				ErrorLogger.Printf("Failed to reload config: %v\n", err)
-			} else {
-				if err := setLogging(&newcfg); err != nil {
-					// this will go to squid cache.log
-					ConsoleLogger.Println("redirector| Failed to set log - '%v'", err)
-				} else {
-					newcfg.LoadCategories()
-					config = newcfg
-				}
-			}
+			ErrorLogger.Printf("%v: Waiting for config", configN)
+			WGConfig.Wait()
+			WGConfig.Add(1)
+			ErrorLogger.Printf("%v: Loading new configuration", configN)
+			load_config()
+			WGConfig.Done()
 		}
 	}
+}
+
+func cfgfin(cfg *Config) {
+	ConsoleLogger.Printf("Finalizing %v cfg", cfg.id)
+}
+
+func load_config() error {
+	if newcfg, err := NewConfig(configFlag, configN); err != nil {
+		// this will go to squid cache.log
+		ConsoleLogger.Printf("redirector| Failed to read config - '%v'", err)
+		return err
+	} else {
+		runtime.SetFinalizer(newcfg, cfgfin)
+		if err := setLogging(newcfg); err != nil {
+			// this will go to squid cache.log
+			ConsoleLogger.Println("redirector| Failed to set log - '%v'", err)
+			return err
+		}
+		WGConfig.Add(1)
+		go func() {
+			defer WGConfig.Done()
+			newcfg.LoadCategories()
+			oldconfig := config
+			config = newcfg
+			ErrorLogger.Printf("%v: Configuration loaded", configN)
+			configN += 1
+			if len(oldconfig.Categories) != 0 {
+				for _, cat := range oldconfig.Categories {
+					cat.Urls = nil
+				}
+			}
+			runtime.GC()
+			//runtime.GC()
+		}()
+	}
+	return nil
 }
 
 func setLoggingFile(path string, file *os.File) (logger *log.Logger, err error) {
@@ -84,35 +116,34 @@ func setLogging(cfg *Config) (err error) {
 }
 
 func main() {
+	go func() {
+		log.Println(http.ListenAndServe("localhost:6060", nil))
+	}()
+
 	ConsoleLogger = log.New(os.Stderr, "", 0)
 
 	flag.Parse()
-	if newcfg, err := NewConfig(configFlag); err != nil {
-		ConsoleLogger.Fatalf("Failed to read config - '%v'", err)
-	} else {
-		if err := setLogging(&newcfg); err != nil {
-			ConsoleLogger.Fatalf("Failed to set log - '%v'", err)
-		}
-		defer ChangeLoggerFile.Close()
-		defer ErrorLoggerFile.Close()
-		config = newcfg
+	config = new(Config)
+	config.Categories = make(map[string]*Category)
+	if err := load_config(); err != nil {
+		os.Exit(1)
 	}
-
-	config.LoadCategories()
-
-	go handleSignals()
+	defer ChangeLoggerFile.Close()
+	defer ErrorLoggerFile.Close()
 
 	// read from stdin
 	reader := bufio.NewReader(os.Stdin)
 
 	// sync write to stdout
 	writer_chan := make(chan string)
-	go libredirector.OutWriter(writer_chan)
-	libredirector.WGMain.Add(1)
+	go OutWriter(writer_chan)
+	WGMain.Add(1)
 
 	ErrorLogger.Println("Started, ready to serve requests")
 
-	channels = make(map[string]chan *libredirector.Input)
+	go handleSignals()
+
+	channels = make(map[string]chan *Input)
 	for {
 		if line, err := reader.ReadString('\n'); err != nil {
 			if err != io.EOF {
@@ -121,25 +152,26 @@ func main() {
 			break
 		} else {
 			// TODO: strings.Trim("\n\r")
-			if input, err := libredirector.ParseInput(line[:len(line)-1]); err != nil {
+			if input, err := ParseInput(line[:len(line)-1]); err != nil {
 				ConsoleLogger.Println("Failed to parse input:", err)
 			} else {
 				// dynamically create separate goroutine for each squid chan-id
 				if _, ok := channels[input.Chanid]; !ok {
-					channels[input.Chanid] = make(chan *libredirector.Input)
-					go libredirector.Checker(input.Chanid, channels[input.Chanid], writer_chan)
-					libredirector.WGMain.Add(1)
+					channels[input.Chanid] = make(chan *Input)
+					go Checker(input.Chanid, channels[input.Chanid], writer_chan)
+					WGMain.Add(1)
 				}
 				channels[input.Chanid] <- &input
 			}
 		}
+		runtime.GC()
 	}
 
 	close(writer_chan)
 	for _, ch := range channels {
 		close(ch)
 	}
-	libredirector.WGConfig.Wait()
-	libredirector.WGMain.Wait()
+	WGConfig.Wait()
+	WGMain.Wait()
 	ErrorLogger.Println("Finished")
 }

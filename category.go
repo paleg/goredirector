@@ -1,11 +1,10 @@
-package libredirector
+package main
 
 import (
 	"bufio"
-	"fmt"
 	"os"
 	"regexp"
-	"sort"
+	//"sort"
 )
 
 type Category struct {
@@ -24,48 +23,46 @@ type Category struct {
 }
 
 func (c *Category) Print() {
-	fmt.Printf("%v (%v)\n", c.Title, len(c.Urls))
-	fmt.Printf("  urls: %v \n", c.UrlsFile)
-	fmt.Printf("  pcre: %v \n", c.PcreFile)
-	var keys []string
-	for k := range c.Urls {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	for i, k := range keys {
-		fmt.Printf("    %v: %v\n", i, c.Urls[k])
-	}
+	//fmt.Printf("%v (%v)\n", c.Title, len(c.Urls))
+	//fmt.Printf("  urls: %v \n", c.UrlsFile)
+	//fmt.Printf("  pcre: %v \n", c.PcreFile)
+	//var keys []string
+	//for k := range c.Urls {
+	//	keys = append(keys, k)
+	//}
+	//sort.Strings(keys)
+	//for i, k := range keys {
+	//	fmt.Printf("    %v: %v\n", i, c.Urls[k])
+	//}
 }
 
 func (c *Category) Load() error {
-	defer WGConfig.Done()
-
-	fmt.Printf("Loading '%+v' pcre from '%+v'\n", c.Title, c.PcreFile)
+	//ErrorLogger.Printf("Loading '%+v' pcre from '%+v'\n", c.Title, c.PcreFile)
 	if file, err := os.Open(c.PcreFile); err != nil {
-		fmt.Printf("Failed to load pcre for '%+v' category: %+v\n", c.Title, err)
+		//ErrorLogger.Printf("Failed to load pcre for '%+v' category: %+v\n", c.Title, err)
 	} else {
 		defer file.Close()
-		defer func() {
-			fmt.Printf("Loaded '%+v' category (%v pcre)\n", c.Title, len(c.Pcre))
-		}()
+		//defer func() {
+		//	ErrorLogger.Printf("Loaded '%+v' category (%v pcre)\n", c.Title, len(c.Pcre))
+		//}()
 		scanner := bufio.NewScanner(file)
 		for scanner.Scan() {
 			re := scanner.Text()
 			if compiled, err := regexp.Compile(re); err != nil {
-				fmt.Printf("Failed to compile '%v': %v\n", re, err)
+				//ErrorLogger.Printf("Failed to compile '%v': %v\n", re, err)
 			} else {
 				c.Pcre = append(c.Pcre, compiled)
 			}
 		}
 	}
 
-	fmt.Printf("Loading '%+v' urls from '%+v'\n", c.Title, c.UrlsFile)
+	//ErrorLogger.Printf("Loading '%+v' urls from '%+v'\n", c.Title, c.UrlsFile)
 	if file, err := os.Open(c.UrlsFile); err != nil {
-		fmt.Printf("Failed to load urls for '%+v' category: %+v\n", c.Title, err)
+		ErrorLogger.Printf("Failed to load urls for '%+v' category: %+v\n", c.Title, err)
 	} else {
 		defer file.Close()
 		defer func() {
-			fmt.Printf("Loaded '%+v' category (%v domains)\n", c.Title, len(c.Urls))
+			ErrorLogger.Printf("Loaded '%+v' category (%v domains)\n", c.Title, len(c.Urls))
 		}()
 
 		c.Urls = make(map[string][]URL)
