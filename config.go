@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"os"
-	"runtime"
 	"strings"
 )
 
@@ -75,17 +74,16 @@ func (c *Config) SetOpt(category string, opt string, value string) {
 	}
 }
 
-func (c *Config) LoadCategories() {
+func (c *Config) LoadCategories(sync bool) {
 	for _, c := range c.Categories {
-		WGConfig.Add(1)
+		WGCategories.Add(1)
 		go func(c *Category) {
 			c.Load()
 		}(c)
 	}
-}
-
-func catfin(cat *Category) {
-	ConsoleLogger.Printf("Finalizing %v category", cat.Title)
+	if sync {
+		WGCategories.Wait()
+	}
 }
 
 func NewConfig(conf string) (newcfg *Config, err error) {
@@ -107,7 +105,6 @@ func NewConfig(conf string) (newcfg *Config, err error) {
 			if strings.HasPrefix(splitted_dash[0], "<") {
 				category = strings.Trim(splitted_dash[0], "<>")
 				newcfg.Categories[category] = &Category{Title: category, Log: true, Reverse: false}
-				runtime.SetFinalizer(newcfg.Categories[category], catfin)
 			} else {
 				if len(splitted_dash) == 1 {
 					splitted_dash = append(splitted_dash, "")

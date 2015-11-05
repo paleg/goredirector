@@ -37,7 +37,7 @@ func (c *Category) Print() {
 }
 
 func (c *Category) Load() error {
-	defer WGConfig.Done()
+	defer WGCategories.Done()
 
 	//ErrorLogger.Printf("Loading '%+v' pcre from '%+v'\n", c.Title, c.PcreFile)
 	if file, err := os.Open(c.PcreFile); err != nil {

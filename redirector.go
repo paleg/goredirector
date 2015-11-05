@@ -6,8 +6,6 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"net/http"
-	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"runtime"
@@ -48,30 +46,36 @@ func handleSignals() {
 			WGConfig.Wait()
 			WGConfig.Add(1)
 			ErrorLogger.Println("Loading new configuration")
-			load_config()
+			if err := load_config(true); err != nil {
+				ErrorLogger.Println("Failed to load new configuration")
+			} else {
+				runtime.GC()
+			}
 			WGConfig.Done()
 		}
 	}
 }
 
-func cfgfin(cfg *Config) {
-	ConsoleLogger.Printf("Finalizing cfg")
-}
-
-func load_config() error {
+func load_config(sync bool) error {
 	if newcfg, err := NewConfig(configFlag); err != nil {
 		// this will go to squid cache.log
 		ConsoleLogger.Printf("redirector| Failed to read config - '%v'", err)
 		return err
 	} else {
-		runtime.SetFinalizer(newcfg, cfgfin)
 		if err := setLogging(newcfg); err != nil {
 			// this will go to squid cache.log
 			ConsoleLogger.Println("redirector| Failed to set log - '%v'", err)
 			return err
 		}
-		newcfg.LoadCategories()
-		config = newcfg
+		newcfg.LoadCategories(sync)
+		// for immediate GC old config
+		// oldconfig can be nil on inital config load (on start)
+		var oldconfig *Config
+		if oldconfig, config = config, newcfg; oldconfig != nil {
+			for k, _ := range oldconfig.Categories {
+				oldconfig.Categories[k] = nil
+			}
+		}
 		ErrorLogger.Printf("Configuration loaded")
 	}
 	return nil
@@ -102,14 +106,10 @@ func setLogging(cfg *Config) (err error) {
 }
 
 func main() {
-	go func() {
-		log.Println(http.ListenAndServe("localhost:6060", nil))
-	}()
-
 	ConsoleLogger = log.New(os.Stderr, "", 0)
 
 	flag.Parse()
-	if err := load_config(); err != nil {
+	if err := load_config(false); err != nil {
 		os.Exit(1)
 	}
 	defer ChangeLoggerFile.Close()
