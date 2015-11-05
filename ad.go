@@ -13,7 +13,9 @@ func ExtendFromAD(list []string) (result []string) {
 			if users, err := adclient.GetUsersInGroup(group); err != nil {
 				ErrorLogger.Printf("Failed to get AD group '%v' members: %v", group, err)
 			} else {
-				result = append(result, users...)
+				for _, user := range users {
+					result = append(result, strings.ToLower(user))
+				}
 			}
 		}
 	}
