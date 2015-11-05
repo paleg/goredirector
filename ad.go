@@ -23,15 +23,15 @@ func ExtendFromAD(list []string) (result []string) {
 }
 
 func (c *Config) ReloadAD(sync bool) {
-	ErrorLogger.Printf("Waiting for reload AD groups\n")
 	WGAD.Wait()
 	WGAD.Add(1)
 	defer WGAD.Done()
-	ErrorLogger.Printf("Reloading AD groups\n")
 	adclient.New()
 	defer adclient.Delete()
+	adclient.Timelimit = 60
+	adclient.Nettimeout = 60
 	if err := adclient.Login("domain.local", "user", "password", "dc=domain,dc=local"); err != nil {
-		ErrorLogger.Printf("Failed to ad login: %v", err)
+		ErrorLogger.Printf("Failed to AD login: %v", err)
 		return
 	}
 	defer ErrorLogger.Printf("Reloaded AD groups\n")
