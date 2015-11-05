@@ -8,7 +8,6 @@ import (
 )
 
 type Config struct {
-	id         int
 	verbose    bool
 	debug      bool
 	error_log  string
@@ -78,7 +77,10 @@ func (c *Config) SetOpt(category string, opt string, value string) {
 
 func (c *Config) LoadCategories() {
 	for _, c := range c.Categories {
-		c.Load()
+		WGConfig.Add(1)
+		go func(c *Category) {
+			c.Load()
+		}(c)
 	}
 }
 
@@ -86,7 +88,7 @@ func catfin(cat *Category) {
 	ConsoleLogger.Printf("Finalizing %v category", cat.Title)
 }
 
-func NewConfig(conf string, id int) (newcfg *Config, err error) {
+func NewConfig(conf string) (newcfg *Config, err error) {
 	file, err := os.Open(conf)
 	if err != nil {
 		return
@@ -94,7 +96,6 @@ func NewConfig(conf string, id int) (newcfg *Config, err error) {
 	defer file.Close()
 
 	newcfg = new(Config)
-	newcfg.id = id
 	newcfg.Categories = make(map[string]*Category)
 
 	var category string

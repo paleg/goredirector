@@ -21,7 +21,6 @@ var (
 )
 
 var config *Config
-var configN = 1
 
 var channels map[string]chan *Input
 
@@ -45,10 +44,10 @@ func handleSignals() {
 		ErrorLogger.Println("Signal received:", sig)
 		switch sig {
 		case syscall.SIGHUP:
-			ErrorLogger.Printf("%v: Waiting for config", configN)
+			ErrorLogger.Println("Waiting for config")
 			WGConfig.Wait()
 			WGConfig.Add(1)
-			ErrorLogger.Printf("%v: Loading new configuration", configN)
+			ErrorLogger.Println("Loading new configuration")
 			load_config()
 			WGConfig.Done()
 		}
@@ -56,11 +55,11 @@ func handleSignals() {
 }
 
 func cfgfin(cfg *Config) {
-	ConsoleLogger.Printf("Finalizing %v cfg", cfg.id)
+	ConsoleLogger.Printf("Finalizing cfg")
 }
 
 func load_config() error {
-	if newcfg, err := NewConfig(configFlag, configN); err != nil {
+	if newcfg, err := NewConfig(configFlag); err != nil {
 		// this will go to squid cache.log
 		ConsoleLogger.Printf("redirector| Failed to read config - '%v'", err)
 		return err
@@ -71,22 +70,9 @@ func load_config() error {
 			ConsoleLogger.Println("redirector| Failed to set log - '%v'", err)
 			return err
 		}
-		WGConfig.Add(1)
-		go func() {
-			defer WGConfig.Done()
-			newcfg.LoadCategories()
-			oldconfig := config
-			config = newcfg
-			ErrorLogger.Printf("%v: Configuration loaded", configN)
-			configN += 1
-			if len(oldconfig.Categories) != 0 {
-				for _, cat := range oldconfig.Categories {
-					cat.Urls = nil
-				}
-			}
-			runtime.GC()
-			//runtime.GC()
-		}()
+		newcfg.LoadCategories()
+		config = newcfg
+		ErrorLogger.Printf("Configuration loaded")
 	}
 	return nil
 }
@@ -123,8 +109,6 @@ func main() {
 	ConsoleLogger = log.New(os.Stderr, "", 0)
 
 	flag.Parse()
-	config = new(Config)
-	config.Categories = make(map[string]*Category)
 	if err := load_config(); err != nil {
 		os.Exit(1)
 	}
@@ -164,7 +148,6 @@ func main() {
 				channels[input.Chanid] <- &input
 			}
 		}
-		runtime.GC()
 	}
 
 	close(writer_chan)
