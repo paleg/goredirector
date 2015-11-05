@@ -98,11 +98,11 @@ func ExtendFromFile(list []string) (result []string) {
 				defer file.Close()
 				scanner := bufio.NewScanner(file)
 				for scanner.Scan() {
-					result = append(result, scanner.Text())
+					result = append(result, strings.ToLower(scanner.Text()))
 				}
 			}
 		} else {
-			result = append(result, s)
+			result = append(result, strings.ToLower(s))
 		}
 	}
 	sort.Strings(result)
