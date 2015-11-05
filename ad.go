@@ -20,19 +20,19 @@ func ExtendFromAD(list []string) (result []string) {
 	return
 }
 
-func (c *Config) ReloadAD() {
+func (c *Config) ReloadAD(sync bool) {
 	ErrorLogger.Printf("Waiting for reload AD groups\n")
-	WGConfig.Wait()
-	WGConfig.Add(1)
+	WGAD.Wait()
+	WGAD.Add(1)
+	defer WGAD.Done()
 	ErrorLogger.Printf("Reloading AD groups\n")
 	adclient.New()
+	defer adclient.Delete()
 	if err := adclient.Login("domain.local", "user", "password", "dc=domain,dc=local"); err != nil {
 		ErrorLogger.Printf("Failed to ad login: %v", err)
 		return
 	}
-	defer WGConfig.Done()
 	defer ErrorLogger.Printf("Reloaded AD groups\n")
-	defer adclient.Delete()
 
 	workid := ExtendFromFile(c.work_id)
 	workid = append(workid, ExtendFromAD(c.work_id)...)
