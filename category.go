@@ -15,9 +15,13 @@ type Category struct {
 	Pcre     []*regexp.Regexp
 	RedirUrl string
 	WorkIP   []string
+	work_ip  []string
 	AllowIP  []string
+	allow_ip []string
 	WorkID   []string
+	work_id  []string
 	AllowID  []string
+	allow_id []string
 	Log      bool
 	Reverse  bool
 }

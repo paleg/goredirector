@@ -13,9 +13,13 @@ type Config struct {
 	error_log  string
 	change_log string
 	WorkIP     []string
+	work_ip    []string
 	AllowIP    []string
+	allow_ip   []string
 	WorkID     []string
+	work_id    []string
 	AllowID    []string
+	allow_id   []string
 	allow_urls string
 	AllowURLs  *Category
 	Categories map[string]*Category
@@ -41,13 +45,13 @@ func (c *Config) SetOpt(category string, opt string, value string) {
 		case "change_log":
 			c.change_log = value
 		case "work_ip":
-			c.WorkIP = append(c.WorkIP, value)
+			c.work_ip = append(c.work_ip, value)
 		case "allow_ip":
-			c.AllowIP = append(c.AllowIP, value)
+			c.allow_ip = append(c.allow_ip, value)
 		case "work_id":
-			c.WorkID = append(c.WorkID, value)
+			c.work_id = append(c.work_id, value)
 		case "allow_id":
-			c.AllowID = append(c.AllowID, value)
+			c.allow_id = append(c.allow_id, value)
 		case "allow_urls":
 			c.allow_urls = value
 		}
@@ -59,13 +63,13 @@ func (c *Config) SetOpt(category string, opt string, value string) {
 		case "url":
 			c.Categories[category].RedirUrl = value
 		case "work_ip":
-			c.Categories[category].WorkIP = append(c.Categories[category].WorkIP, value)
+			c.Categories[category].work_ip = append(c.Categories[category].work_ip, value)
 		case "allow_ip":
-			c.Categories[category].AllowIP = append(c.Categories[category].AllowIP, value)
+			c.Categories[category].allow_ip = append(c.Categories[category].allow_ip, value)
 		case "work_id":
-			c.Categories[category].WorkID = append(c.Categories[category].WorkID, value)
+			c.Categories[category].work_id = append(c.Categories[category].work_id, value)
 		case "allow_id":
-			c.Categories[category].AllowID = append(c.Categories[category].AllowID, value)
+			c.Categories[category].allow_id = append(c.Categories[category].allow_id, value)
 		case "log":
 			if value == "off" {
 				c.Categories[category].Log = false
@@ -101,6 +105,9 @@ func ExtendFromFile(list []string) (result []string) {
 					result = append(result, strings.ToLower(scanner.Text()))
 				}
 			}
+		} else if strings.HasPrefix(s, "ad:") && len(s) > 3 {
+			// will be added later in ad goroutine
+			continue
 		} else {
 			result = append(result, strings.ToLower(s))
 		}
@@ -118,23 +125,23 @@ func (c *Config) LoadFiles() {
 		c.AllowURLs.Load()
 	}
 
-	c.WorkID = ExtendFromFile(c.WorkID)
+	c.WorkID = ExtendFromFile(c.work_id)
 	ErrorLogger.Printf("c.WorkID = %#v\n", c.WorkID)
-	c.WorkIP = ExtendFromFile(c.WorkIP)
+	c.WorkIP = ExtendFromFile(c.work_ip)
 	ErrorLogger.Printf("c.WorkIP = %#v\n", c.WorkIP)
-	c.AllowID = ExtendFromFile(c.AllowID)
+	c.AllowID = ExtendFromFile(c.allow_id)
 	ErrorLogger.Printf("c.AllowID = %#v\n", c.AllowID)
-	c.AllowIP = ExtendFromFile(c.AllowIP)
+	c.AllowIP = ExtendFromFile(c.allow_ip)
 	ErrorLogger.Printf("c.AllowIP = %#v\n", c.AllowIP)
 
 	for _, cat := range c.Categories {
-		cat.WorkID = ExtendFromFile(cat.WorkID)
+		cat.WorkID = ExtendFromFile(cat.work_id)
 		ErrorLogger.Printf("%v WorkID = %#v\n", cat.Title, cat.WorkID)
-		cat.WorkIP = ExtendFromFile(cat.WorkIP)
+		cat.WorkIP = ExtendFromFile(cat.work_ip)
 		ErrorLogger.Printf("%v WorkIP = %#v\n", cat.Title, cat.WorkIP)
-		cat.AllowID = ExtendFromFile(cat.AllowID)
+		cat.AllowID = ExtendFromFile(cat.allow_id)
 		ErrorLogger.Printf("%v AllowID = %#v\n", cat.Title, cat.AllowID)
-		cat.AllowIP = ExtendFromFile(cat.AllowIP)
+		cat.AllowIP = ExtendFromFile(cat.allow_ip)
 		ErrorLogger.Printf("%v AllowIP = %#v\n", cat.Title, cat.AllowIP)
 	}
 }

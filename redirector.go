@@ -68,6 +68,7 @@ func load_config(sync bool) error {
 			return err
 		}
 		newcfg.LoadFiles()
+		newcfg.ReloadAD()
 		newcfg.LoadCategories(sync)
 		// for immediate GC old config
 		// oldconfig can be nil on inital config load (on start)
