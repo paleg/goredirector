@@ -4,7 +4,9 @@ import (
 	"bufio"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
+	"time"
 )
 
 type Config struct {
@@ -14,6 +16,9 @@ type Config struct {
 	ADUser       string
 	ADPassword   string
 	ADSearchBase string
+	ADReload     int
+	ADTicker     *time.Ticker
+	ADTickerQuit chan struct{}
 	WorkIP       []string
 	work_ip      []string
 	AllowIP      []string
@@ -39,7 +44,7 @@ func FilterComments(in []string) (res []string) {
 	return
 }
 
-func (c *Config) SetOpt(category string, opt string, value string) {
+func (c *Config) SetOpt(category string, opt string, value string) (err error) {
 	if category == "" {
 		switch opt {
 		case "error_log":
@@ -54,6 +59,11 @@ func (c *Config) SetOpt(category string, opt string, value string) {
 			c.ADPassword = value
 		case "ad_searchbase":
 			c.ADSearchBase = value
+		case "ad_reload":
+			c.ADReload, err = strconv.Atoi(value)
+			if err != nil {
+				return
+			}
 		case "work_ip":
 			c.work_ip = append(c.work_ip, value)
 		case "allow_ip":
@@ -88,6 +98,7 @@ func (c *Config) SetOpt(category string, opt string, value string) {
 			c.Categories[category].Reverse = true
 		}
 	}
+	return
 }
 
 func (c *Config) LoadCategories(sync bool) {
@@ -179,7 +190,9 @@ func NewConfig(conf string) (newcfg *Config, err error) {
 				if len(splitted_dash) == 1 {
 					splitted_dash = append(splitted_dash, "")
 				}
-				newcfg.SetOpt(category, splitted_dash[0], splitted_dash[1])
+				if err = newcfg.SetOpt(category, splitted_dash[0], splitted_dash[1]); err != nil {
+					return
+				}
 			}
 		}
 	}

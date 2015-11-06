@@ -3,7 +3,9 @@ package main
 import (
 	"github.com/paleg/libadclient"
 	"reflect"
+	"sort"
 	"strings"
+	"time"
 )
 
 func ExtendFromAD(list []string) (result []string) {
@@ -23,6 +25,14 @@ func ExtendFromAD(list []string) (result []string) {
 }
 
 func (c *Config) ReloadAD(sync bool) {
+	if sync {
+		c.ReloadADSync()
+	} else {
+		go c.ReloadADSync()
+	}
+}
+
+func (c *Config) ReloadADSync() {
 	WGAD.Wait()
 	WGAD.Add(1)
 	defer WGAD.Done()
@@ -38,6 +48,7 @@ func (c *Config) ReloadAD(sync bool) {
 
 	workid := ExtendFromFile(c.work_id)
 	workid = append(workid, ExtendFromAD(c.work_id)...)
+	sort.Strings(workid)
 	if !reflect.DeepEqual(c.WorkID, workid) {
 		c.WorkID = workid
 		ErrorLogger.Printf("extended c.WorkID to %v", c.WorkID)
@@ -45,6 +56,7 @@ func (c *Config) ReloadAD(sync bool) {
 
 	allowid := ExtendFromFile(c.allow_id)
 	allowid = append(allowid, ExtendFromAD(c.work_id)...)
+	sort.Strings(allowid)
 	if !reflect.DeepEqual(c.AllowID, allowid) {
 		c.AllowID = allowid
 		ErrorLogger.Printf("extended c.AllowID to %v", c.AllowID)
@@ -53,6 +65,7 @@ func (c *Config) ReloadAD(sync bool) {
 	for _, cat := range c.Categories {
 		cat_workid := ExtendFromFile(cat.work_id)
 		cat_workid = append(cat_workid, ExtendFromAD(cat.work_id)...)
+		sort.Strings(cat_workid)
 		if !reflect.DeepEqual(cat.WorkID, cat_workid) {
 			cat.WorkID = cat_workid
 			ErrorLogger.Printf("extended %v.WorkID to %v", cat.Title, cat.WorkID)
@@ -60,9 +73,33 @@ func (c *Config) ReloadAD(sync bool) {
 
 		cat_allowid := ExtendFromFile(cat.allow_id)
 		cat_allowid = append(cat_allowid, ExtendFromAD(cat.allow_id)...)
+		sort.Strings(cat_allowid)
 		if !reflect.DeepEqual(cat.AllowID, cat_allowid) {
 			cat.AllowID = cat_allowid
 			ErrorLogger.Printf("extended %v.AllowID to %v", cat.Title, cat.AllowID)
 		}
 	}
+}
+
+func (c *Config) ScheduleReloadAD(seconds int) {
+	ErrorLogger.Printf("Scheduling AD reload every %v second", seconds)
+	c.ADTicker = time.NewTicker(time.Duration(seconds) * time.Second)
+	c.ADTickerQuit = make(chan struct{})
+	go func(cfg *Config) {
+		for {
+			select {
+			case <-c.ADTicker.C:
+				ErrorLogger.Printf("Reloading AD on schedule\n")
+				cfg.ReloadADSync()
+			case <-c.ADTickerQuit:
+				ErrorLogger.Printf("Stopped AD reloading on schedule\n")
+				c.ADTicker.Stop()
+				return
+			}
+		}
+	}(c)
+}
+
+func (c *Config) StopReloadAD() {
+	close(c.ADTickerQuit)
 }

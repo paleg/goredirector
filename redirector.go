@@ -74,11 +74,13 @@ func load_config(sync bool) error {
 		// oldconfig can be nil on inital config load (on start)
 		var oldconfig *Config
 		if oldconfig, config = config, newcfg; oldconfig != nil {
+			oldconfig.StopReloadAD()
 			oldconfig.AllowURLs = nil
 			for k, _ := range oldconfig.Categories {
 				oldconfig.Categories[k] = nil
 			}
 		}
+		config.ScheduleReloadAD(config.ADReload)
 		ErrorLogger.Printf("Configuration loaded")
 	}
 	return nil
