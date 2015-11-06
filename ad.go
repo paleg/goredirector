@@ -30,7 +30,7 @@ func (c *Config) ReloadAD(sync bool) {
 	defer adclient.Delete()
 	adclient.Timelimit = 60
 	adclient.Nettimeout = 60
-	if err := adclient.Login("domain.local", "user", "password", "dc=domain,dc=local"); err != nil {
+	if err := adclient.Login(c.ADServer, c.ADUser, c.ADPassword, c.ADSearchBase); err != nil {
 		ErrorLogger.Printf("Failed to AD login: %v", err)
 		return
 	}

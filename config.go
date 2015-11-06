@@ -8,21 +8,23 @@ import (
 )
 
 type Config struct {
-	verbose    bool
-	debug      bool
-	error_log  string
-	change_log string
-	WorkIP     []string
-	work_ip    []string
-	AllowIP    []string
-	allow_ip   []string
-	WorkID     []string
-	work_id    []string
-	AllowID    []string
-	allow_id   []string
-	allow_urls string
-	AllowURLs  *Category
-	Categories map[string]*Category
+	error_log    string
+	change_log   string
+	ADServer     []string
+	ADUser       string
+	ADPassword   string
+	ADSearchBase string
+	WorkIP       []string
+	work_ip      []string
+	AllowIP      []string
+	allow_ip     []string
+	WorkID       []string
+	work_id      []string
+	AllowID      []string
+	allow_id     []string
+	allow_urls   string
+	AllowURLs    *Category
+	Categories   map[string]*Category
 }
 
 func FilterComments(in []string) (res []string) {
@@ -44,6 +46,14 @@ func (c *Config) SetOpt(category string, opt string, value string) {
 			c.error_log = value
 		case "change_log":
 			c.change_log = value
+		case "ad_server":
+			c.ADServer = append(c.ADServer, value)
+		case "ad_user":
+			c.ADUser = value
+		case "ad_password":
+			c.ADPassword = value
+		case "ad_searchbase":
+			c.ADSearchBase = value
 		case "work_ip":
 			c.work_ip = append(c.work_ip, value)
 		case "allow_ip":
