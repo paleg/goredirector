@@ -91,16 +91,20 @@ func Checker(id string, in chan *Input, out chan string) {
 				Pass(id, out, "failed to parse input url")
 				found = true
 				break
-			} else if hit, hitrule := cat.CheckURL(&parsed_url); hit {
-				cat.Redirect(id, out, input, fmt.Sprintf("urls rule: %s", hitrule))
-				found = true
-				break
+			} else if len(cat.Urls) > 0 {
+				if hit, hitrule := cat.CheckURL(&parsed_url); (hit && !cat.Reverse) || (!hit && cat.Reverse) {
+					cat.Redirect(id, out, input, fmt.Sprintf("urls rule: %s", hitrule))
+					found = true
+					break
+				}
 			}
 
-			if hit, hitid := cat.CheckPCRE(input.RawUrl); hit {
-				cat.Redirect(id, out, input, fmt.Sprintf("pcre rule: #%v", hitid))
-				found = true
-				break
+			if len(cat.Pcre) > 0 {
+				if hit, hitid := cat.CheckPCRE(input.RawUrl); (hit && !cat.Reverse) || (!hit && cat.Reverse) {
+					cat.Redirect(id, out, input, fmt.Sprintf("pcre rule: #%v", hitid))
+					found = true
+					break
+				}
 			}
 		}
 		if !found {
