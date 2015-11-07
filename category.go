@@ -24,26 +24,27 @@ type Category struct {
 	AllowID  []string
 	allow_id []string
 	Log      bool
-	Reverse  bool
+	// TODO
+	Reverse bool
+	// TODO
+	//action
 }
 
-func (c *Category) CheckPCRE(inurl string) bool {
-	for _, re := range c.Pcre {
+func (c *Category) CheckPCRE(inurl string) (bool, int) {
+	for i, re := range c.Pcre {
 		if re.MatchString(inurl) {
-			return true
+			return true, i + 1
 		}
 	}
-	return false
+	return false, 0
 }
 
-func (c *Category) CheckURL(inurl *URL) bool {
+func (c *Category) CheckURL(inurl *URL) (bool, string) {
 	if urls, ok := c.Urls[inurl.Domain]; !ok {
-		ErrorLogger.Printf("%v is not in %v Urls\n", inurl.Domain, c.Title)
-		return false
+		return false, ""
 	} else {
 		if urls[0].Base() {
-			ErrorLogger.Printf("inurl.Domain is a base domain in %v Urls\n", c.Title)
-			return true
+			return true, urls[0].String()
 		} else {
 			for _, url := range urls {
 				if (url.SubDomain == "" || url.SubDomain == inurl.SubDomain) &&
@@ -51,15 +52,12 @@ func (c *Category) CheckURL(inurl *URL) bool {
 					(url.Dirs == "" || url.Dirs == inurl.Dirs ||
 						// 47 is a forward slash
 						(strings.HasPrefix(inurl.Dirs, url.Dirs) && inurl.Dirs[len(url.Dirs)] == 47)) {
-					ErrorLogger.Printf("%v == %v\n", inurl, url)
-					return true
-				} else {
-					ErrorLogger.Printf("%v != %v\n", inurl, url)
+					return true, url.String()
 				}
 			}
 		}
 	}
-	return false
+	return false, ""
 }
 
 func (c *Category) Load() error {

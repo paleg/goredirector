@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"sort"
+	"strings"
 )
 
 func SearchID(ids []string, id string) bool {
@@ -25,9 +26,21 @@ func Pass(out chan string, reason string) {
 	out <- "ERR"
 }
 
-func Redirect(out chan string, reason string) {
+func (cat *Category) Redirect(out chan string, input *Input, reason string) {
+	r := strings.NewReplacer(
+		"#URL#", input.RawUrl,
+		"#IP#", input.IP.String(),
+		"#IDENT#", input.User,
+		"#METHOD#", input.Method,
+		"#SECTION#", cat.Title,
+	)
+	redir_url := r.Replace(cat.RedirUrl)
 	ConsoleLogger.Printf("Redirecting request: %v\n", reason)
-	out <- "OK"
+	out <- "OK rewrite-url=" + redir_url
+
+	if cat.Log {
+		ChangeLogger.Printf("%s: %s %s %s %s (%s)", cat.Title, input.IP, input.Host, input.User, input.RawUrl, reason)
+	}
 }
 
 func Checker(id string, in chan *Input, out chan string) {
@@ -75,14 +88,14 @@ func Checker(id string, in chan *Input, out chan string) {
 				Pass(out, "failed to parse input url")
 				found = true
 				break
-			} else if cat.CheckURL(&parsed_url) {
-				Redirect(out, fmt.Sprintf("redirect from '%v' urls", cat.Title))
+			} else if hit, rule := cat.CheckURL(&parsed_url); hit {
+				cat.Redirect(out, input, fmt.Sprintf("urls rule: %s", rule))
 				found = true
 				break
 			}
 
-			if cat.CheckPCRE(input.RawUrl) {
-				Redirect(out, fmt.Sprintf("redirect from '%v' pcre", cat.Title))
+			if hit, id := cat.CheckPCRE(input.RawUrl); hit {
+				cat.Redirect(out, input, fmt.Sprintf("pcre rule: #%v", id))
 				found = true
 				break
 			}
