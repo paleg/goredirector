@@ -63,6 +63,8 @@ func ParseUrl(rawurl string) (URL, error) {
 				return u, errors.New(fmt.Sprintf("skipping %v because of bad character in domain name", host))
 			}
 		}
+		// https://golang.org/pkg/net/url/#URL
+		// net/url:URL.Path is a decoded query path without args
 		u.Dirs = parsed_url.Path
 		// lets separate two-level domain from N-level subdomains (N>2)
 		splitted := strings.SplitN(strings.ToLower(host), ".", -1)

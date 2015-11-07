@@ -5,7 +5,7 @@ import (
 	"net"
 	"os"
 	"regexp"
-	//"sort"
+	"strings"
 )
 
 type Category struct {
@@ -27,18 +27,29 @@ type Category struct {
 	Reverse  bool
 }
 
-func (c *Category) Print() {
-	//fmt.Printf("%v (%v)\n", c.Title, len(c.Urls))
-	//fmt.Printf("  urls: %v \n", c.UrlsFile)
-	//fmt.Printf("  pcre: %v \n", c.PcreFile)
-	//var keys []string
-	//for k := range c.Urls {
-	//	keys = append(keys, k)
-	//}
-	//sort.Strings(keys)
-	//for i, k := range keys {
-	//	fmt.Printf("    %v: %v\n", i, c.Urls[k])
-	//}
+func (c *Category) CheckURL(inurl *URL) bool {
+	if urls, ok := c.Urls[inurl.Domain]; !ok {
+		ErrorLogger.Printf("%v is not in %v Urls\n", inurl.Domain, c.Title)
+		return false
+	} else {
+		if urls[0].Base() {
+			ErrorLogger.Printf("inurl.Domain is a base domain in %v Urls\n", c.Title)
+			return true
+		} else {
+			for _, url := range urls {
+				if (url.SubDomain == "" || url.SubDomain == inurl.SubDomain) &&
+					(url.Port == "" || url.Port == inurl.Port) &&
+					(url.Dirs == "" || url.Dirs == inurl.Dirs ||
+						(strings.HasPrefix(inurl.Dirs, url.Dirs) && inurl.Dirs[len(url.Dirs)] == 47)) {
+					ErrorLogger.Printf("%v == %v\n", inurl, url)
+					return true
+				} else {
+					ErrorLogger.Printf("%v != %v\n", inurl, url)
+				}
+			}
+		}
+	}
+	return false
 }
 
 func (c *Category) Load() error {
