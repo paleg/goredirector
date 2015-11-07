@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	//"fmt"
+	"net"
 	"net/url"
 	"strings"
 )
@@ -10,12 +11,14 @@ import (
 type Input struct {
 	Chanid string
 	RawUrl string
-	IP     string
+	IP     net.IP
 	User   string
 	Method string
+	Raw    string
 }
 
 func ParseInput(input string) (i Input, err error) {
+	i.Raw = input
 	splitted := strings.Split(input, " ")
 	if len(splitted) < 4 {
 		err = errors.New("Wrong number of arguments")
@@ -29,9 +32,9 @@ func ParseInput(input string) (i Input, err error) {
 	// TODO: raw_change()
 	i.RawUrl = splitted[1]
 	if indx := strings.Index(splitted[2], "/"); indx == -1 {
-		i.IP = splitted[2]
+		i.IP = net.ParseIP(splitted[2])
 	} else {
-		i.IP = splitted[2][:indx]
+		i.IP = net.ParseIP(splitted[2][:indx])
 	}
 	// TODO: check err_user
 	i.User, _ = url.QueryUnescape(splitted[3])
