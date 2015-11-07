@@ -142,7 +142,7 @@ func main() {
 		} else {
 			// TODO: strings.Trim("\n\r")
 			if input, err := ParseInput(line[:len(line)-1]); err != nil {
-				ConsoleLogger.Println("Failed to parse input:", err)
+				ErrorLogger.Println("Failed to parse input:", err)
 			} else {
 				// dynamically create separate goroutine for each squid chan-id
 				if _, ok := channels[input.Chanid]; !ok {
@@ -159,7 +159,9 @@ func main() {
 	for _, ch := range channels {
 		close(ch)
 	}
+	config.StopReloadAD()
 	WGConfig.Wait()
+	WGAD.Wait()
 	WGMain.Wait()
 	ErrorLogger.Println("Finished")
 }
