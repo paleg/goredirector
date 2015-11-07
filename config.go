@@ -10,6 +10,10 @@ import (
 	"time"
 )
 
+// TODO
+//raw_change
+//TODO
+//raw_log off
 type Config struct {
 	error_log    string
 	change_log   string
@@ -20,6 +24,7 @@ type Config struct {
 	ADReload     int
 	ADTicker     *time.Ticker
 	ADTickerQuit chan struct{}
+	LogHost      bool
 	WorkIP       []*net.IPNet
 	work_ip      []string
 	AllowIP      []*net.IPNet
@@ -75,6 +80,8 @@ func (c *Config) SetOpt(category string, opt string, value string) (err error) {
 			c.allow_id = append(c.allow_id, value)
 		case "allow_urls":
 			c.allow_urls = value
+		case "write_hostname_to_log":
+			c.LogHost = true
 		}
 	} else {
 		switch opt {

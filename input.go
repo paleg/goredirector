@@ -12,6 +12,7 @@ type Input struct {
 	Chanid string
 	RawUrl string
 	IP     net.IP
+	Host   string
 	User   string
 	Method string
 	Raw    string
@@ -35,6 +36,9 @@ func ParseInput(input string) (i Input, err error) {
 		i.IP = net.ParseIP(splitted[2])
 	} else {
 		i.IP = net.ParseIP(splitted[2][:indx])
+		if config.LogHost {
+			i.Host = splitted[2][indx+1:]
+		}
 	}
 	// TODO: check err_user
 	i.User, _ = url.QueryUnescape(splitted[3])
