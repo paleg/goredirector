@@ -24,7 +24,19 @@ func ExtendFromAD(list []string) (result []string) {
 	return
 }
 
+func (c *Config) UseAD() bool {
+	return c.ADUser != "" &&
+		c.ADPassword != "" &&
+		len(c.ADServer) > 0 &&
+		c.ADSearchBase != "" &&
+		c.ADReload != 0
+}
+
 func (c *Config) ReloadAD(sync bool) {
+	if !c.UseAD() {
+		return
+	}
+
 	if sync {
 		c.ReloadADSync()
 	} else {
@@ -33,6 +45,10 @@ func (c *Config) ReloadAD(sync bool) {
 }
 
 func (c *Config) ReloadADSync() {
+	if !c.UseAD() {
+		return
+	}
+
 	WGAD.Wait()
 	WGAD.Add(1)
 	defer WGAD.Done()
@@ -82,6 +98,10 @@ func (c *Config) ReloadADSync() {
 }
 
 func (c *Config) ScheduleReloadAD(seconds int) {
+	if !c.UseAD() {
+		return
+	}
+
 	ErrorLogger.Printf("Scheduling AD reload every %v second", seconds)
 	c.ADTicker = time.NewTicker(time.Duration(seconds) * time.Second)
 	c.ADTickerQuit = make(chan struct{})
@@ -101,5 +121,9 @@ func (c *Config) ScheduleReloadAD(seconds int) {
 }
 
 func (c *Config) StopReloadAD() {
+	if !c.UseAD() {
+		return
+	}
+
 	close(c.ADTickerQuit)
 }
