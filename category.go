@@ -8,6 +8,11 @@ import (
 	"strings"
 )
 
+const (
+	ActionRedir int = iota
+	ActionPass
+)
+
 type Category struct {
 	Title    string
 	UrlsFile string
@@ -24,10 +29,8 @@ type Category struct {
 	AllowID  []string
 	allow_id []string
 	Log      bool
-	// TODO
-	Reverse bool
-	// TODO
-	//action
+	Reverse  bool
+	Action   int
 }
 
 func (c *Category) CheckPCRE(inurl string) (bool, int) {

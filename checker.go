@@ -27,6 +27,11 @@ func Pass(id string, out chan string, reason string) {
 }
 
 func (cat *Category) Redirect(id string, out chan string, input *Input, reason string) {
+	if cat.Action == ActionPass {
+		Pass(id, out, reason)
+		return
+	}
+
 	r := strings.NewReplacer(
 		"#URL#", input.RawUrl,
 		"#IP#", input.IP.String(),

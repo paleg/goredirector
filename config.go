@@ -104,6 +104,10 @@ func (c *Config) SetOpt(category string, opt string, value string) (err error) {
 			}
 		case "reverse":
 			c.Categories[category].Reverse = true
+		case "action":
+			if value == "pass" {
+				c.Categories[category].Action = ActionPass
+			}
 		}
 	}
 	return
