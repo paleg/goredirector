@@ -137,7 +137,7 @@ func main() {
 	for {
 		if line, err := reader.ReadString('\n'); err != nil {
 			if err != io.EOF {
-				ConsoleLogger.Println("Failed to read string:", err)
+				ErrorLogger.Println("Failed to read string:", err)
 			}
 			break
 		} else {
