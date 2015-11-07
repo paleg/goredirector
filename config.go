@@ -120,10 +120,10 @@ func ExtendIPs(ips []string) (result []*net.IPNet) {
 		if len(splitted_ip) == 1 {
 			ip += "/32"
 		} else if len(splitted_ip) != 2 || len(splitted_ip[1]) != 2 {
-			ErrorLogger.Printf("Wrong ip address - %v\n", ip)
+			ErrorLogger.Printf("Wrong ip address (is not CIDR) - %v\n", ip)
 		}
 		if _, ipnet, err := net.ParseCIDR(ip); err != nil {
-			ErrorLogger.Printf("Wrong CIDR address - %v: \v\n", ip, err)
+			ErrorLogger.Printf("Wrong ip address (is not CIDR) - %v: \v\n", ip, err)
 		} else {
 			result = append(result, ipnet)
 		}
