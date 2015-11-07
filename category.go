@@ -27,6 +27,15 @@ type Category struct {
 	Reverse  bool
 }
 
+func (c *Category) CheckPCRE(inurl string) bool {
+	for _, re := range c.Pcre {
+		if re.MatchString(inurl) {
+			return true
+		}
+	}
+	return false
+}
+
 func (c *Category) CheckURL(inurl *URL) bool {
 	if urls, ok := c.Urls[inurl.Domain]; !ok {
 		ErrorLogger.Printf("%v is not in %v Urls\n", inurl.Domain, c.Title)
@@ -40,6 +49,7 @@ func (c *Category) CheckURL(inurl *URL) bool {
 				if (url.SubDomain == "" || url.SubDomain == inurl.SubDomain) &&
 					(url.Port == "" || url.Port == inurl.Port) &&
 					(url.Dirs == "" || url.Dirs == inurl.Dirs ||
+						// 47 is a forward slash
 						(strings.HasPrefix(inurl.Dirs, url.Dirs) && inurl.Dirs[len(url.Dirs)] == 47)) {
 					ErrorLogger.Printf("%v == %v\n", inurl, url)
 					return true

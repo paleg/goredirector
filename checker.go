@@ -69,13 +69,20 @@ func Checker(id string, in chan *Input, out chan string) {
 				ConsoleLogger.Printf("'%v' allow ip is not null and user ip is in", cat.Title)
 				continue
 			}
+
 			if parsed_url, err := ParseUrl(input.RawUrl); err != nil {
 				ConsoleLogger.Printf("Can not parse input url: %v\n", err)
 				Pass(out, "failed to parse input url")
 				found = true
 				break
 			} else if cat.CheckURL(&parsed_url) {
-				Redirect(out, fmt.Sprintf("redirect from '%v'", cat.Title))
+				Redirect(out, fmt.Sprintf("redirect from '%v' urls", cat.Title))
+				found = true
+				break
+			}
+
+			if cat.CheckPCRE(input.RawUrl) {
+				Redirect(out, fmt.Sprintf("redirect from '%v' pcre", cat.Title))
 				found = true
 				break
 			}
