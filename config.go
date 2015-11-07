@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"net"
 	"os"
 	"sort"
 	"strconv"
@@ -19,9 +20,9 @@ type Config struct {
 	ADReload     int
 	ADTicker     *time.Ticker
 	ADTickerQuit chan struct{}
-	WorkIP       []string
+	WorkIP       []*net.IPNet
 	work_ip      []string
-	AllowIP      []string
+	AllowIP      []*net.IPNet
 	allow_ip     []string
 	WorkID       []string
 	work_id      []string
@@ -113,6 +114,23 @@ func (c *Config) LoadCategories(sync bool) {
 	}
 }
 
+func ExtendIPs(ips []string) (result []*net.IPNet) {
+	for _, ip := range ips {
+		splitted_ip := strings.Split(ip, "/")
+		if len(splitted_ip) == 1 {
+			ip += "/32"
+		} else if len(splitted_ip) != 2 || len(splitted_ip[1]) != 2 {
+			ErrorLogger.Printf("Wrong ip address - %v\n", ip)
+		}
+		if _, ipnet, err := net.ParseCIDR(ip); err != nil {
+			ErrorLogger.Printf("Wrong CIDR address - %v: \v\n", ip, err)
+		} else {
+			result = append(result, ipnet)
+		}
+	}
+	return
+}
+
 func ExtendFromFile(list []string) (result []string) {
 	for _, s := range list {
 		if strings.HasPrefix(s, "f:") && len(s) > 2 {
@@ -148,22 +166,22 @@ func (c *Config) LoadFiles() {
 
 	c.WorkID = ExtendFromFile(c.work_id)
 	ErrorLogger.Printf("c.WorkID = %#v\n", c.WorkID)
-	c.WorkIP = ExtendFromFile(c.work_ip)
-	ErrorLogger.Printf("c.WorkIP = %#v\n", c.WorkIP)
+	c.WorkIP = ExtendIPs(ExtendFromFile(c.work_ip))
+	ErrorLogger.Printf("c.WorkIP = %v\n", c.WorkIP)
 	c.AllowID = ExtendFromFile(c.allow_id)
 	ErrorLogger.Printf("c.AllowID = %#v\n", c.AllowID)
-	c.AllowIP = ExtendFromFile(c.allow_ip)
-	ErrorLogger.Printf("c.AllowIP = %#v\n", c.AllowIP)
+	c.AllowIP = ExtendIPs(ExtendFromFile(c.allow_ip))
+	ErrorLogger.Printf("c.AllowIP = %v\n", c.AllowIP)
 
 	for _, cat := range c.Categories {
 		cat.WorkID = ExtendFromFile(cat.work_id)
 		ErrorLogger.Printf("%v WorkID = %#v\n", cat.Title, cat.WorkID)
-		cat.WorkIP = ExtendFromFile(cat.work_ip)
-		ErrorLogger.Printf("%v WorkIP = %#v\n", cat.Title, cat.WorkIP)
+		cat.WorkIP = ExtendIPs(ExtendFromFile(cat.work_ip))
+		ErrorLogger.Printf("%v WorkIP = %v\n", cat.Title, cat.WorkIP)
 		cat.AllowID = ExtendFromFile(cat.allow_id)
 		ErrorLogger.Printf("%v AllowID = %#v\n", cat.Title, cat.AllowID)
-		cat.AllowIP = ExtendFromFile(cat.allow_ip)
-		ErrorLogger.Printf("%v AllowIP = %#v\n", cat.Title, cat.AllowIP)
+		cat.AllowIP = ExtendIPs(ExtendFromFile(cat.allow_ip))
+		ErrorLogger.Printf("%v AllowIP = %v\n", cat.Title, cat.AllowIP)
 	}
 }
 

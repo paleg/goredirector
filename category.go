@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"net"
 	"os"
 	"regexp"
 	//"sort"
@@ -14,9 +15,9 @@ type Category struct {
 	Urls     map[string][]URL
 	Pcre     []*regexp.Regexp
 	RedirUrl string
-	WorkIP   []string
+	WorkIP   []*net.IPNet
 	work_ip  []string
-	AllowIP  []string
+	AllowIP  []*net.IPNet
 	allow_ip []string
 	WorkID   []string
 	work_id  []string
