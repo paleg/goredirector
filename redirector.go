@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"strings"
 	"syscall"
 )
 
@@ -140,9 +141,10 @@ func main() {
 			}
 			break
 		} else {
-			// TODO: strings.Trim("\n\r")
-			if input, err := ParseInput(line[:len(line)-1]); err != nil {
+			line = strings.Trim(line, "\n")
+			if input, err := ParseInput(line); err != nil {
 				ErrorLogger.Println("Failed to parse input:", err)
+				writer_chan <- line
 			} else {
 				// dynamically create separate goroutine for each squid chan-id
 				if _, ok := channels[input.Chanid]; !ok {
