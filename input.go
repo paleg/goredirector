@@ -28,7 +28,11 @@ func ParseInput(input string) (i Input, err error) {
 	// TODO: CASE_INDEPENDENT
 	// TODO: raw_change()
 	i.RawUrl = splitted[1]
-	i.IP = splitted[2]
+	if indx := strings.Index(splitted[2], "/"); indx == -1 {
+		i.IP = splitted[2]
+	} else {
+		i.IP = splitted[2][:indx]
+	}
 	// TODO: check err_user
 	i.User, _ = url.QueryUnescape(splitted[3])
 	i.User = strings.ToLower(i.User)
