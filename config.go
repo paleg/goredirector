@@ -2,6 +2,8 @@ package main
 
 import (
 	"bufio"
+	"errors"
+	"fmt"
 	"net"
 	"os"
 	"sort"
@@ -10,10 +12,6 @@ import (
 	"time"
 )
 
-// TODO
-//raw_change
-//TODO
-//raw_log off
 type Config struct {
 	error_log    string
 	change_log   string
@@ -50,62 +48,72 @@ func FilterComments(in []string) (res []string) {
 	return
 }
 
-func (c *Config) SetOpt(category string, opt string, value string) (err error) {
+func (c *Config) SetOpt(category string, values []string) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			if category == "" {
+				err = errors.New(fmt.Sprintf("Wrong config option: %v", values))
+			} else {
+				err = errors.New(fmt.Sprintf("Wrong config option in '%v' category: %v", category, values))
+			}
+		}
+	}()
+
 	if category == "" {
-		switch opt {
+		switch values[0] {
 		case "error_log":
-			c.error_log = value
+			c.error_log = values[1]
 		case "change_log":
-			c.change_log = value
+			c.change_log = values[1]
 		case "ad_server":
-			c.ADServer = append(c.ADServer, value)
+			c.ADServer = append(c.ADServer, values[1])
 		case "ad_user":
-			c.ADUser = value
+			c.ADUser = values[1]
 		case "ad_password":
-			c.ADPassword = value
+			c.ADPassword = values[1]
 		case "ad_searchbase":
-			c.ADSearchBase = value
+			c.ADSearchBase = values[1]
 		case "ad_reload":
-			c.ADReload, err = strconv.Atoi(value)
+			c.ADReload, err = strconv.Atoi(values[1])
 			if err != nil {
 				return
 			}
 		case "work_ip":
-			c.work_ip = append(c.work_ip, value)
+			c.work_ip = append(c.work_ip, values[1])
 		case "allow_ip":
-			c.allow_ip = append(c.allow_ip, value)
+			c.allow_ip = append(c.allow_ip, values[1])
 		case "work_id":
-			c.work_id = append(c.work_id, value)
+			c.work_id = append(c.work_id, values[1])
 		case "allow_id":
-			c.allow_id = append(c.allow_id, value)
+			c.allow_id = append(c.allow_id, values[1])
 		case "allow_urls":
-			c.allow_urls = value
+			c.allow_urls = values[1]
 		case "write_hostname_to_log":
 			c.LogHost = true
 		}
 	} else {
-		switch opt {
+		switch values[0] {
 		case "ban_dir":
-			c.Categories[category].UrlsFile = value + "/urls"
-			c.Categories[category].PcreFile = value + "/pcre"
+			c.Categories[category].UrlsFile = values[1] + "/urls"
+			c.Categories[category].PcreFile = values[1] + "/pcre"
 		case "url":
-			c.Categories[category].RedirUrl = value
+			c.Categories[category].RedirUrl = values[1]
 		case "work_ip":
-			c.Categories[category].work_ip = append(c.Categories[category].work_ip, value)
+			c.Categories[category].work_ip = append(c.Categories[category].work_ip, values[1])
 		case "allow_ip":
-			c.Categories[category].allow_ip = append(c.Categories[category].allow_ip, value)
+			c.Categories[category].allow_ip = append(c.Categories[category].allow_ip, values[1])
 		case "work_id":
-			c.Categories[category].work_id = append(c.Categories[category].work_id, value)
+			c.Categories[category].work_id = append(c.Categories[category].work_id, values[1])
 		case "allow_id":
-			c.Categories[category].allow_id = append(c.Categories[category].allow_id, value)
+			c.Categories[category].allow_id = append(c.Categories[category].allow_id, values[1])
 		case "log":
-			if value == "off" {
+			if values[1] == "off" {
 				c.Categories[category].Log = false
 			}
 		case "reverse":
 			c.Categories[category].Reverse = true
 		case "action":
-			if value == "pass" {
+			if values[1] == "pass" {
 				c.Categories[category].Action = ActionPass
 			}
 		}
@@ -125,7 +133,7 @@ func (c *Config) LoadCategories(sync bool) {
 	}
 }
 
-func ExtendIPs(ips []string) (result []*net.IPNet) {
+func (c *Config) ExtendIPs(ips []string) (result []*net.IPNet) {
 	for _, ip := range ips {
 		splitted_ip := strings.Split(ip, "/")
 		if len(splitted_ip) == 1 {
@@ -142,7 +150,7 @@ func ExtendIPs(ips []string) (result []*net.IPNet) {
 	return
 }
 
-func ExtendFromFile(list []string) (result []string) {
+func (c *Config) ExtendFromFile(list []string) (result []string) {
 	for _, s := range list {
 		if strings.HasPrefix(s, "f:") && len(s) > 2 {
 			filename := s[2:]
@@ -175,24 +183,16 @@ func (c *Config) LoadFiles() {
 		c.AllowURLs.Load()
 	}
 
-	c.WorkID = ExtendFromFile(c.work_id)
-	ErrorLogger.Printf("c.WorkID = %#v\n", c.WorkID)
-	c.WorkIP = ExtendIPs(ExtendFromFile(c.work_ip))
-	ErrorLogger.Printf("c.WorkIP = %v\n", c.WorkIP)
-	c.AllowID = ExtendFromFile(c.allow_id)
-	ErrorLogger.Printf("c.AllowID = %#v\n", c.AllowID)
-	c.AllowIP = ExtendIPs(ExtendFromFile(c.allow_ip))
-	ErrorLogger.Printf("c.AllowIP = %v\n", c.AllowIP)
+	c.WorkID = c.ExtendFromFile(c.work_id)
+	c.WorkIP = c.ExtendIPs(c.ExtendFromFile(c.work_ip))
+	c.AllowID = c.ExtendFromFile(c.allow_id)
+	c.AllowIP = c.ExtendIPs(c.ExtendFromFile(c.allow_ip))
 
 	for _, cat := range c.Categories {
-		cat.WorkID = ExtendFromFile(cat.work_id)
-		ErrorLogger.Printf("%v WorkID = %#v\n", cat.Title, cat.WorkID)
-		cat.WorkIP = ExtendIPs(ExtendFromFile(cat.work_ip))
-		ErrorLogger.Printf("%v WorkIP = %v\n", cat.Title, cat.WorkIP)
-		cat.AllowID = ExtendFromFile(cat.allow_id)
-		ErrorLogger.Printf("%v AllowID = %#v\n", cat.Title, cat.AllowID)
-		cat.AllowIP = ExtendIPs(ExtendFromFile(cat.allow_ip))
-		ErrorLogger.Printf("%v AllowIP = %v\n", cat.Title, cat.AllowIP)
+		cat.WorkID = c.ExtendFromFile(cat.work_id)
+		cat.WorkIP = c.ExtendIPs(c.ExtendFromFile(cat.work_ip))
+		cat.AllowID = c.ExtendFromFile(cat.allow_id)
+		cat.AllowIP = c.ExtendIPs(c.ExtendFromFile(cat.allow_ip))
 	}
 }
 
@@ -203,7 +203,7 @@ func NewConfig(conf string) (newcfg *Config, err error) {
 	}
 	defer file.Close()
 
-	newcfg = new(Config)
+	newcfg = &Config{LogHost: false}
 	newcfg.Categories = make(map[string]*Category)
 
 	var category string
@@ -214,12 +214,9 @@ func NewConfig(conf string) (newcfg *Config, err error) {
 		if splitted_dash != nil {
 			if strings.HasPrefix(splitted_dash[0], "<") {
 				category = strings.Trim(splitted_dash[0], "<>")
-				newcfg.Categories[category] = &Category{Title: category, Log: true, Reverse: false}
+				newcfg.Categories[category] = &Category{Title: category, Log: true, Reverse: false, Action: ActionRedir}
 			} else {
-				if len(splitted_dash) == 1 {
-					splitted_dash = append(splitted_dash, "")
-				}
-				if err = newcfg.SetOpt(category, splitted_dash[0], splitted_dash[1]); err != nil {
+				if err = newcfg.SetOpt(category, splitted_dash); err != nil {
 					return
 				}
 			}

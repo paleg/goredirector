@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func ExtendFromAD(list []string) (result []string) {
+func (c *Config) ExtendFromAD(list []string) (result []string) {
 	for _, s := range list {
 		if strings.HasPrefix(s, "ad:") && len(s) > 3 {
 			group := s[3:]
@@ -62,16 +62,16 @@ func (c *Config) ReloadADSync() {
 	}
 	defer ErrorLogger.Printf("Reloaded AD groups\n")
 
-	workid := ExtendFromFile(c.work_id)
-	workid = append(workid, ExtendFromAD(c.work_id)...)
+	workid := c.ExtendFromFile(c.work_id)
+	workid = append(workid, c.ExtendFromAD(c.work_id)...)
 	sort.Strings(workid)
 	if !reflect.DeepEqual(c.WorkID, workid) {
 		c.WorkID = workid
 		ErrorLogger.Printf("extended c.WorkID to %v", c.WorkID)
 	}
 
-	allowid := ExtendFromFile(c.allow_id)
-	allowid = append(allowid, ExtendFromAD(c.work_id)...)
+	allowid := c.ExtendFromFile(c.allow_id)
+	allowid = append(allowid, c.ExtendFromAD(c.work_id)...)
 	sort.Strings(allowid)
 	if !reflect.DeepEqual(c.AllowID, allowid) {
 		c.AllowID = allowid
@@ -79,16 +79,16 @@ func (c *Config) ReloadADSync() {
 	}
 
 	for _, cat := range c.Categories {
-		cat_workid := ExtendFromFile(cat.work_id)
-		cat_workid = append(cat_workid, ExtendFromAD(cat.work_id)...)
+		cat_workid := c.ExtendFromFile(cat.work_id)
+		cat_workid = append(cat_workid, c.ExtendFromAD(cat.work_id)...)
 		sort.Strings(cat_workid)
 		if !reflect.DeepEqual(cat.WorkID, cat_workid) {
 			cat.WorkID = cat_workid
 			ErrorLogger.Printf("extended %v.WorkID to %v", cat.Title, cat.WorkID)
 		}
 
-		cat_allowid := ExtendFromFile(cat.allow_id)
-		cat_allowid = append(cat_allowid, ExtendFromAD(cat.allow_id)...)
+		cat_allowid := c.ExtendFromFile(cat.allow_id)
+		cat_allowid = append(cat_allowid, c.ExtendFromAD(cat.allow_id)...)
 		sort.Strings(cat_allowid)
 		if !reflect.DeepEqual(cat.AllowID, cat_allowid) {
 			cat.AllowID = cat_allowid
