@@ -12,6 +12,11 @@ import (
 	"time"
 )
 
+type RawChange struct {
+	Old string
+	New string
+}
+
 type Config struct {
 	error_log    string
 	change_log   string
@@ -34,6 +39,8 @@ type Config struct {
 	allow_urls   string
 	AllowURLs    *Category
 	Categories   map[string]*Category
+	RawChanges   []RawChange
+	RawChangeLog bool
 }
 
 func FilterComments(in []string) (res []string) {
@@ -90,6 +97,12 @@ func (c *Config) SetOpt(category string, values []string) (err error) {
 			c.allow_urls = values[1]
 		case "write_hostname_to_log":
 			c.LogHost = true
+		case "raw_change":
+			c.RawChanges = append(c.RawChanges, RawChange{Old: values[1], New: values[2]})
+		case "raw_log":
+			if values[1] == "off" {
+				c.RawChangeLog = false
+			}
 		}
 	} else {
 		switch values[0] {
@@ -203,7 +216,7 @@ func NewConfig(conf string) (newcfg *Config, err error) {
 	}
 	defer file.Close()
 
-	newcfg = &Config{LogHost: false}
+	newcfg = &Config{LogHost: false, RawChangeLog: true}
 	newcfg.Categories = make(map[string]*Category)
 
 	var category string
