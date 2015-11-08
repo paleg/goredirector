@@ -178,6 +178,9 @@ func (c *Config) ExtendFromFile(list []string) (result []string) {
 			}
 		} else if strings.HasPrefix(s, "ad:") && len(s) > 3 {
 			// will be added later in ad goroutine
+			if !c.UseAD() {
+				ErrorLogger.Println("Found 'ad' prefix in config but AD support was not configured")
+			}
 			continue
 		} else {
 			result = append(result, strings.ToLower(s))
