@@ -26,6 +26,13 @@ func Pass(id string, out chan string, reason string) {
 	out <- id + " ERR"
 }
 
+func RawRedirect(id string, out chan string, input *Input, redir_url string) {
+	out <- id + " OK rewrite-url=" + redir_url
+	if config.RawChangeLog {
+		ChangeLogger.Printf("RAW_CHANGE: %s %s %s %s -> %s", input.IP, input.Host, input.User, input.RawUrl, redir_url)
+	}
+}
+
 func (cat *Category) Redirect(id string, out chan string, input *Input, reason string) {
 	if cat.Action == ActionPass {
 		Pass(id, out, reason)
@@ -51,6 +58,13 @@ func Checker(id string, in chan *Input, out chan string) {
 	ErrorLogger.Printf("Checker%v started\n", id)
 	defer WGMain.Done()
 	for input := range in {
+		if len(config.RawChanges) > 0 {
+			if newurl, err := config.RawChange(input.RawUrl); err == nil {
+				RawRedirect(id, out, input, newurl)
+				continue
+			}
+		}
+
 		if len(config.WorkID) > 0 && !SearchID(config.WorkID, input.User) {
 			Pass(id, out, "global work id is not null and user ident is not in")
 			continue

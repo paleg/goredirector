@@ -213,6 +213,14 @@ func (c *Config) LoadFiles() {
 	}
 }
 
+func (c *Config) RawChange(inurl string) (string, error) {
+	for _, change := range c.RawChanges {
+		if strings.Index(inurl, change.Old) != -1 {
+			return strings.Replace(inurl, change.Old, change.New, 1), nil
+		}
+	}
+	return "", errors.New("")
+}
 func NewConfig(conf string) (newcfg *Config, err error) {
 	file, err := os.Open(conf)
 	if err != nil {
