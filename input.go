@@ -28,9 +28,7 @@ func ParseInput(input string) (i Input, err error) {
 		splitted = append([]string{"0"}, splitted...)
 	}
 	i.Chanid = splitted[0]
-	// TODO: check err_url
 	// TODO: CASE_INDEPENDENT
-	// TODO: raw_change()
 	i.RawUrl = splitted[1]
 	if indx := strings.Index(splitted[2], "/"); indx == -1 {
 		i.IP = net.ParseIP(splitted[2])
@@ -40,8 +38,12 @@ func ParseInput(input string) (i Input, err error) {
 			i.Host = splitted[2][indx+1:]
 		}
 	}
-	// TODO: check err_user
-	i.User, _ = url.QueryUnescape(splitted[3])
+	if i.User, err = url.QueryUnescape(splitted[3]); err != nil {
+		//TODO: check wtf
+		ErrorLogger.Printf("Failed to unescape user ident: %v\n", err)
+		i.User = splitted[3]
+		err = nil
+	}
 	i.User = strings.ToLower(i.User)
 	i.Method = splitted[4]
 	return
