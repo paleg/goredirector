@@ -99,8 +99,9 @@ func (c *Category) Load() error {
 		c.Urls = make(map[string][]URL)
 		scanner := bufio.NewScanner(file)
 		for scanner.Scan() {
-			if parsed_input_url, err := ParseUrl(scanner.Text()); err != nil {
-				//fmt.Println(err)
+			inurl := scanner.Text()
+			if parsed_input_url, err := ParseUrl(inurl); err != nil {
+				ErrorLogger.Printf("Can not parse url '%v': %v\n", inurl, err)
 				continue
 			} else {
 				if urls_in_map, ok := c.Urls[parsed_input_url.Domain]; ok {
