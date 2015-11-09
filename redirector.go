@@ -8,7 +8,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"runtime"
 	"strings"
 	"syscall"
 )
@@ -49,8 +48,6 @@ func handleSignals() {
 			ErrorLogger.Println("Loading new configuration")
 			if err := load_config(true); err != nil {
 				ErrorLogger.Println("Failed to load new configuration")
-			} else {
-				runtime.GC()
 			}
 			WGConfig.Done()
 		}
