@@ -81,6 +81,21 @@ func Checker(id string, in chan *Input, out chan string) {
 			Pass(id, out, "global allow ip is not null and user ip is in")
 			continue
 		}
+
+		parsed_url, err_parse := ParseUrl(input.RawUrl)
+		if err_parse != nil {
+			//ConsoleLogger.Printf("Can not parse input url: %v\n", err)
+			Pass(id, out, "failed to parse input url")
+			continue
+		}
+
+		if len(config.AllowURLs.Urls) > 0 {
+			if hit, hitrule := config.AllowURLs.CheckURL(&parsed_url); hit {
+				Pass(id, out, fmt.Sprintf("global allow_urls (%s)", hitrule))
+				continue
+			}
+		}
+
 		found := false
 		for _, cat := range config.Categories {
 			if len(cat.WorkID) > 0 && !SearchID(cat.WorkID, input.User) {
@@ -100,12 +115,7 @@ func Checker(id string, in chan *Input, out chan string) {
 				continue
 			}
 
-			if parsed_url, err := ParseUrl(input.RawUrl); err != nil {
-				//ConsoleLogger.Printf("Can not parse input url: %v\n", err)
-				Pass(id, out, "failed to parse input url")
-				found = true
-				break
-			} else if len(cat.Urls) > 0 {
+			if len(cat.Urls) > 0 {
 				if hit, hitrule := cat.CheckURL(&parsed_url); (hit && !cat.Reverse) || (!hit && cat.Reverse) {
 					cat.Redirect(id, out, input, fmt.Sprintf("urls rule: %s", hitrule))
 					found = true
@@ -121,6 +131,7 @@ func Checker(id string, in chan *Input, out chan string) {
 				}
 			}
 		}
+
 		if !found {
 			Pass(id, out, "url not found in black lists")
 		}

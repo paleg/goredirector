@@ -194,8 +194,6 @@ func (c *Config) ExtendFromFile(list []string) (result []string) {
 func (c *Config) LoadFiles() {
 	if c.allow_urls != "" {
 		WGCategories.Add(1)
-		c.AllowURLs = new(Category)
-		c.AllowURLs.Title = "ALLOWED_URLS"
 		c.AllowURLs.UrlsFile = c.allow_urls
 		c.AllowURLs.Load()
 	}
@@ -230,6 +228,8 @@ func NewConfig(conf string) (newcfg *Config, err error) {
 
 	newcfg = &Config{LogHost: false, RawChangeLog: true}
 	newcfg.Categories = make(map[string]*Category)
+	newcfg.AllowURLs = new(Category)
+	newcfg.AllowURLs.Title = "ALLOWED_URLS"
 
 	var category string
 	scanner := bufio.NewScanner(file)
