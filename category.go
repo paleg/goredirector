@@ -101,7 +101,7 @@ func (c *Category) Load() error {
 		for scanner.Scan() {
 			inurl := scanner.Text()
 			if parsed_input_url, err := ParseUrl(inurl); err != nil {
-				ErrorLogger.Printf("Can not parse url '%v': %v\n", inurl, err)
+				ErrorLogger.Printf("Wrong url in '%s' category: %v\n", c.Title, err)
 				continue
 			} else {
 				if urls_in_map, ok := c.Urls[parsed_input_url.Domain]; ok {

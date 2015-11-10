@@ -84,7 +84,7 @@ func Checker(id string, in chan *Input, out chan string) {
 
 		parsed_url, err_parse := ParseUrl(input.RawUrl)
 		if err_parse != nil {
-			ErrorLogger.Printf("Can not parse input url '%v': %v\n", input.RawUrl, err_parse)
+			ErrorLogger.Printf("Wrong input url: %v\n", err_parse)
 			Pass(id, out, "failed to parse input url")
 			continue
 		}
