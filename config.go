@@ -266,7 +266,7 @@ func NewConfig(conf string) (newcfg *Config, err error) {
 		EnforceHTTPSVerifiedCerts: true,
 		CheckProxyTunnels:         true,
 		Policy:                    CheckSecuriry_LogOnly,
-		Results:                   make(map[string]int),
+		Results:                   SecurityResults{r: make(map[string]int)},
 	}
 
 	var category string

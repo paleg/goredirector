@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"sync"
 )
 
 const (
@@ -18,9 +19,15 @@ const (
 
 const (
 	SecurityStatus_Unknown int = iota
+	SecurityStatus_InProgress
 	SecurityStatus_WrongCert
 	SecurityStatus_HTTPS
 )
+
+type SecurityResults struct {
+	sync.RWMutex
+	r map[string]int
+}
 
 type Security struct {
 	Title                     string
@@ -30,7 +37,7 @@ type Security struct {
 	EnforceHTTPSVerifiedCerts bool
 	CheckProxyTunnels         bool
 	AllowUnknownProtocol      bool
-	Results                   map[string]int
+	Results                   SecurityResults
 }
 
 func (s *Security) Redirect(id string, out chan string, input *Input, reason string) bool {
@@ -47,27 +54,43 @@ func (s *Security) Redirect(id string, out chan string, input *Input, reason str
 }
 
 func (s *Security) CheckHTTPSHostnameIsIP(url URL) bool {
-	if config.Security.EnforceHTTPSHostnames == true {
-		ip := net.ParseIP(url.Host)
-		return ip != nil
-	}
-	return false
+	ip := net.ParseIP(url.Host)
+	return ip != nil
 }
 
 func (s *Security) CheckHTTPSWrongCert(url URL) bool {
-	s.CheckHTTPSRoot(url)
-	return s.Results[url.Host+url.Port] == SecurityStatus_WrongCert
+	s.Results.RLock()
+	check_res, ok := s.Results.r[url.Host+url.Port]
+	s.Results.RUnlock()
+	if !ok || check_res == SecurityStatus_Unknown {
+		if s.Policy == CheckSecuriry_Aggressive {
+			s.CheckHTTPSRoot(url)
+			s.Results.RLock()
+			check_res, _ = s.Results.r[url.Host+url.Port]
+			s.Results.RUnlock()
+		} else {
+			ErrorLogger.Println("go check https root")
+			go s.CheckHTTPSRoot(url)
+			return false
+		}
+	}
+	return check_res == SecurityStatus_WrongCert
 }
 
 func (s *Security) CheckHTTPSRoot(url URL) {
 	ErrorLogger.Printf("Checking %s:%s\n", url.Host, url.Port)
-	s.Results[url.Host+url.Port] = SecurityStatus_Unknown
+	s.Results.Lock()
+	s.Results.r[url.Host+url.Port] = SecurityStatus_InProgress
+	s.Results.Unlock()
 
-	tlscfg := tls.Config{InsecureSkipVerify: true}
+	tlscfg := tls.Config{InsecureSkipVerify: true, MinVersion: tls.VersionSSL30}
 	tlscfg.ServerName = url.Host
 	conn, err_conn := tls.Dial("tcp", fmt.Sprintf("%s:%s", url.Host, url.Port), &tlscfg)
 	if err_conn != nil {
 		ErrorLogger.Printf("Failed to dial %s:%s - %s\n", url.Host, url.Port, err_conn)
+		s.Results.Lock()
+		s.Results.r[url.Host+url.Port] = SecurityStatus_Unknown
+		s.Results.Unlock()
 		return
 	}
 
@@ -84,7 +107,9 @@ func (s *Security) CheckHTTPSRoot(url URL) {
 	}
 	_, err_verify := state.PeerCertificates[0].Verify(opts)
 	if err_verify != nil {
-		s.Results[url.Host+url.Port] = SecurityStatus_WrongCert
+		s.Results.Lock()
+		s.Results.r[url.Host+url.Port] = SecurityStatus_WrongCert
+		s.Results.Unlock()
 		ErrorLogger.Printf("%s:%s - %s\n", url.Host, url.Port, err_verify)
 		return
 	}
@@ -93,6 +118,9 @@ func (s *Security) CheckHTTPSRoot(url URL) {
 	_, err_write := io.WriteString(conn, message)
 	if err_write != nil {
 		ErrorLogger.Printf("Failed to write '%s' to '%s:%s' - %s", message, url.Host, url.Port, err_write)
+		s.Results.Lock()
+		s.Results.r[url.Host+url.Port] = SecurityStatus_Unknown
+		s.Results.Unlock()
 		return
 	}
 
@@ -100,10 +128,15 @@ func (s *Security) CheckHTTPSRoot(url URL) {
 	_, err_read := conn.Read(reply)
 	if err_read != nil {
 		ErrorLogger.Printf("Failed to read from '%s:%s' - %s", url.Host, url.Port, err_read)
+		s.Results.Lock()
+		s.Results.r[url.Host+url.Port] = SecurityStatus_Unknown
+		s.Results.Unlock()
 		return
 	}
 	if bytes.HasPrefix(reply, []byte("HTTP/")) {
-		s.Results[url.Host+url.Port] = SecurityStatus_HTTPS
+		s.Results.Lock()
+		s.Results.r[url.Host+url.Port] = SecurityStatus_HTTPS
+		s.Results.Unlock()
 		return
 	}
 }
