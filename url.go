@@ -8,6 +8,7 @@ import (
 )
 
 type URL struct {
+	Host      string
 	Domain    string
 	SubDomain string
 	Port      string
@@ -50,26 +51,25 @@ func ParseUrl(rawurl string) (URL, error) {
 	if parsed_url, err := url.Parse(fixedurl); err != nil {
 		return u, err
 	} else {
-		var host string
 		// net/url/URL.Host is a 'host or host:port', lets split them
 		if indx := strings.Index(parsed_url.Host, ":"); indx != -1 {
-			host = parsed_url.Host[:indx]
+			u.Host = parsed_url.Host[:indx]
 			u.Port = parsed_url.Host[indx+1:]
 		} else {
-			host = parsed_url.Host
+			u.Host = parsed_url.Host
 		}
-		for _, c := range host {
+		for _, c := range u.Host {
 			if !((c > 44 && c < 47) || (c > 47 && c < 58) || (c > 64 && c < 91) || c == 95 || (c > 96 && c < 123)) {
-				return u, errors.New(fmt.Sprintf("skipping %v because of bad character in domain name", host))
+				return u, errors.New(fmt.Sprintf("skipping %v because of bad character in domain name", u.Host))
 			}
 		}
 		// https://golang.org/pkg/net/url/#URL
 		// net/url:URL.Path is a decoded query path without args
 		u.Dirs = parsed_url.Path
 		// lets separate two-level domain from N-level subdomains (N>2)
-		splitted := strings.SplitN(strings.ToLower(host), ".", -1)
+		splitted := strings.SplitN(strings.ToLower(u.Host), ".", -1)
 		if len(splitted) < 3 {
-			u.Domain = host
+			u.Domain = u.Host
 		} else {
 			u.Domain = strings.Join(splitted[len(splitted)-2:len(splitted)], ".")
 			u.SubDomain = strings.Join(splitted[:len(splitted)-2], ".")

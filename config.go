@@ -41,6 +41,7 @@ type Config struct {
 	Categories   map[string]*Category
 	RawChanges   []RawChange
 	RawChangeLog bool
+	Security     *Security
 }
 
 func FilterComments(in []string) (res []string) {
@@ -49,7 +50,7 @@ func FilterComments(in []string) (res []string) {
 			if strings.HasPrefix(s, "#") {
 				break
 			}
-			res = append(res, s)
+			res = append(res, strings.Trim(s, " \t"))
 		}
 	}
 	return
@@ -102,6 +103,35 @@ func (c *Config) SetOpt(category string, values []string) (err error) {
 		case "raw_log":
 			if values[1] == "off" {
 				c.RawChangeLog = false
+			}
+		}
+	} else if category == "SECURITY" {
+		switch values[0] {
+		case "url":
+			c.Security.RedirUrl = values[1]
+		case "enforce-https-with-hostname":
+			if values[1] == "off" {
+				c.Security.EnforceHTTPSHostnames = false
+			}
+		case "enforce-https-official-certificate":
+			if values[1] == "off" {
+				c.Security.EnforceHTTPSVerifiedCerts = false
+			}
+		case "allow-unknown-protocol-over-https":
+			if values[1] == "off" {
+				c.Security.AllowUnknownProtocol = false
+			}
+		case "check-proxy-tunnels":
+			if values[1] == "off" {
+				c.Security.CheckProxyTunnels = false
+			}
+		case "policy":
+			if values[1] == "queue-checks" {
+				c.Security.Policy = CheckSecuriry_Queue
+			} else if values[1] == "aggressive" {
+				c.Security.Policy = CheckSecuriry_Aggressive
+			} else if values[1] == "log-only" {
+				c.Security.Policy = CheckSecuriry_LogOnly
 			}
 		}
 	} else {
@@ -228,8 +258,14 @@ func NewConfig(conf string) (newcfg *Config, err error) {
 
 	newcfg = &Config{LogHost: false, RawChangeLog: true}
 	newcfg.Categories = make(map[string]*Category)
-	newcfg.AllowURLs = new(Category)
-	newcfg.AllowURLs.Title = "ALLOWED_URLS"
+	newcfg.AllowURLs = &Category{Title: "ALLOWED_URLS"}
+	newcfg.Security = &Security{Title: "SECURITY",
+		EnforceHTTPSHostnames:     true,
+		EnforceHTTPSVerifiedCerts: true,
+		CheckProxyTunnels:         true,
+		Policy:                    CheckSecuriry_LogOnly,
+		Results:                   make(map[string]int),
+	}
 
 	var category string
 	scanner := bufio.NewScanner(file)

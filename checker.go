@@ -26,6 +26,19 @@ func Pass(id string, out chan string, reason string) {
 	out <- id + " ERR"
 }
 
+func FormatRedirect(title string, url string, input *Input, reason string) (string, string) {
+	r := strings.NewReplacer(
+		"#URL#", input.RawUrl,
+		"#IP#", input.IP.String(),
+		"#IDENT#", input.User,
+		"#METHOD#", input.Method,
+		"#SECTION#", title,
+	)
+
+	return r.Replace(url),
+		fmt.Sprintf("%s: %s %s %s %s (%s)", title, input.IP, input.Host, input.User, input.RawUrl, reason)
+}
+
 func RawRedirect(id string, out chan string, input *Input, redir_url string) {
 	out <- id + " OK rewrite-url=" + redir_url
 	if config.RawChangeLog {
@@ -39,18 +52,11 @@ func (cat *Category) Redirect(id string, out chan string, input *Input, reason s
 		return
 	}
 
-	r := strings.NewReplacer(
-		"#URL#", input.RawUrl,
-		"#IP#", input.IP.String(),
-		"#IDENT#", input.User,
-		"#METHOD#", input.Method,
-		"#SECTION#", cat.Title,
-	)
-	redir_url := r.Replace(cat.RedirUrl)
+	redir_url, log_line := FormatRedirect(cat.Title, cat.RedirUrl, input, reason)
 	out <- id + " OK rewrite-url=" + redir_url
 
 	if cat.Log {
-		ChangeLogger.Printf("%s: %s %s %s %s (%s)", cat.Title, input.IP, input.Host, input.User, input.RawUrl, reason)
+		ChangeLogger.Printf(log_line)
 	}
 }
 
@@ -92,6 +98,17 @@ func Checker(id string, in chan *Input, out chan string) {
 		if len(config.AllowURLs.Urls) > 0 {
 			if hit, hitrule := config.AllowURLs.CheckURL(&parsed_url); hit {
 				Pass(id, out, fmt.Sprintf("global allow_urls (%s)", hitrule))
+				continue
+			}
+		}
+
+		if input.Method == "CONNECT" && config.Security.Policy != CheckSecuriry_Off {
+			if config.Security.CheckHTTPSHostnameIsIP(parsed_url) {
+				config.Security.Redirect(id, out, input, fmt.Sprintf("https rule EnforceHTTPSHostnames"))
+				continue
+			}
+			if config.Security.CheckHTTPSWrongCert(parsed_url) {
+				config.Security.Redirect(id, out, input, fmt.Sprintf("https rule EnforceHTTPSVerifiedCerts"))
 				continue
 			}
 		}
