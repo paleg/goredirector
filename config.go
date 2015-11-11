@@ -132,6 +132,8 @@ func (c *Config) SetOpt(category string, values []string) (err error) {
 				c.Security.Policy = CheckSecuriry_Aggressive
 			} else if values[1] == "log-only" {
 				c.Security.Policy = CheckSecuriry_LogOnly
+			} else if values[1] == "off" {
+				c.Security.Policy = CheckSecuriry_Off
 			}
 		}
 	} else {
@@ -275,7 +277,9 @@ func NewConfig(conf string) (newcfg *Config, err error) {
 		if splitted_dash != nil {
 			if strings.HasPrefix(splitted_dash[0], "<") {
 				category = strings.Trim(splitted_dash[0], "<>")
-				newcfg.Categories[category] = &Category{Title: category, Log: true, Reverse: false, Action: ActionRedir}
+				if category != "SECURITY" {
+					newcfg.Categories[category] = &Category{Title: category, Log: true, Reverse: false, Action: ActionRedir}
+				}
 			} else {
 				if err = newcfg.SetOpt(category, splitted_dash); err != nil {
 					return
