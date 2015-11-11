@@ -69,7 +69,6 @@ func (s *Security) CheckHTTPSWrongCert(url URL) bool {
 			check_res, _ = s.Results.r[url.Host+url.Port]
 			s.Results.RUnlock()
 		} else {
-			ErrorLogger.Println("go check https root")
 			go s.CheckHTTPSRoot(url)
 			return false
 		}
