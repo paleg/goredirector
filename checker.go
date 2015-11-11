@@ -103,12 +103,16 @@ func Checker(id string, in chan *Input, out chan string) {
 		}
 
 		if input.Method == "CONNECT" && config.Security.Policy != CheckSecuriry_Off {
-			if config.Security.CheckHTTPSHostnameIsIP(parsed_url) {
-				config.Security.Redirect(id, out, input, fmt.Sprintf("https rule EnforceHTTPSHostnames"))
+			// Security.Redirect could not redirect (when running in LogOnly mode)
+			// so in such cases check rest of rules
+			if config.Security.EnforceHTTPSVerifiedCerts &&
+				config.Security.CheckHTTPSHostnameIsIP(parsed_url) &&
+				config.Security.Redirect(id, out, input, fmt.Sprintf("https rule EnforceHTTPSHostnames")) {
 				continue
 			}
-			if config.Security.CheckHTTPSWrongCert(parsed_url) {
-				config.Security.Redirect(id, out, input, fmt.Sprintf("https rule EnforceHTTPSVerifiedCerts"))
+			if config.Security.EnforceHTTPSVerifiedCerts &&
+				config.Security.CheckHTTPSWrongCert(parsed_url) &&
+				config.Security.Redirect(id, out, input, fmt.Sprintf("https rule EnforceHTTPSVerifiedCerts")) {
 				continue
 			}
 		}

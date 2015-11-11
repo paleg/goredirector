@@ -33,15 +33,16 @@ type Security struct {
 	Results                   map[string]int
 }
 
-func (s *Security) Redirect(id string, out chan string, input *Input, reason string) {
+func (s *Security) Redirect(id string, out chan string, input *Input, reason string) bool {
 	redir_url, log_line := FormatRedirect(s.Title, s.RedirUrl, input, reason)
 
 	if s.Policy == CheckSecuriry_LogOnly {
-		Pass(id, out, reason)
 		ChangeLogger.Printf(log_line + " (DRY-RUN)")
+		return false
 	} else {
 		out <- id + " OK rewrite-url=" + redir_url
 		ChangeLogger.Printf(log_line)
+		return true
 	}
 }
 
