@@ -72,9 +72,9 @@ func (c *Category) Load() error {
 			ErrorLogger.Printf("Failed to load pcre for '%+v' category: %+v\n", c.Title, err)
 		} else {
 			defer file.Close()
-			//defer func() {
-			//	ErrorLogger.Printf("Loaded '%+v' category (%v pcre)\n", c.Title, len(c.Pcre))
-			//}()
+			defer func() {
+				ErrorLogger.Printf("Loaded '%+v' category (%v pcre)\n", c.Title, len(c.Pcre))
+			}()
 			scanner := bufio.NewScanner(file)
 			for scanner.Scan() {
 				re := scanner.Text()

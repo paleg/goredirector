@@ -59,6 +59,7 @@ func (s *Security) CheckHTTPSWrongCert(url URL) bool {
 }
 
 func (s *Security) CheckHTTPSRoot(url URL) {
+	ErrorLogger.Printf("Checking %s:%s\n", url.Host, url.Port)
 	s.Results[url.Host+url.Port] = SecurityStatus_Unknown
 
 	tlscfg := tls.Config{InsecureSkipVerify: true}
