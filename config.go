@@ -139,8 +139,12 @@ func (c *Config) SetOpt(category string, values []string) (err error) {
 	} else {
 		switch values[0] {
 		case "ban_dir":
-			c.Categories[category].UrlsFile = values[1] + "/urls"
-			c.Categories[category].PcreFile = values[1] + "/pcre"
+			c.Categories[category].UrlsFiles = append(c.Categories[category].UrlsFiles, values[1]+"/urls")
+			c.Categories[category].PcreFiles = append(c.Categories[category].PcreFiles, values[1]+"/pcre")
+		case "urls_file":
+			c.Categories[category].UrlsFiles = append(c.Categories[category].UrlsFiles, values[1])
+		case "pcre_file":
+			c.Categories[category].PcreFiles = append(c.Categories[category].PcreFiles, values[1])
 		case "url":
 			c.Categories[category].RedirUrl = values[1]
 		case "work_ip":
@@ -226,7 +230,7 @@ func (c *Config) ExtendFromFile(list []string) (result []string) {
 func (c *Config) LoadFiles() {
 	if c.allow_urls != "" {
 		WGCategories.Add(1)
-		c.AllowURLs.UrlsFile = c.allow_urls
+		c.AllowURLs.UrlsFiles = append(c.AllowURLs.UrlsFiles, c.allow_urls)
 		c.AllowURLs.Load()
 	}
 
