@@ -50,11 +50,9 @@ func (c *Category) CheckURL(inurl *URL) (bool, string) {
 			return true, urls[0].String()
 		} else {
 			for _, url := range urls {
-				if (url.SubDomain == "" || url.SubDomain == inurl.SubDomain) &&
+				if (url.SubDomain == "" || url.SubDomain == inurl.SubDomain || strings.HasSuffix(inurl.SubDomain, "."+url.SubDomain)) &&
 					(url.Port == "" || url.Port == inurl.Port) &&
-					(url.Dirs == "" || url.Dirs == inurl.Dirs ||
-						// 47 is a forward slash
-						(strings.HasPrefix(inurl.Dirs, url.Dirs) && inurl.Dirs[len(url.Dirs)] == 47)) {
+					(url.Dirs == "" || url.Dirs == inurl.Dirs || strings.HasPrefix(inurl.Dirs, url.Dirs+"/")) {
 					return true, url.String()
 				}
 			}
