@@ -36,6 +36,7 @@ type Category struct {
 	Log       bool
 	Reverse   bool
 	Action    int
+	cache_dir *string
 }
 
 func (c *Category) CheckPCRE(inurl string) (bool, int) {
@@ -184,7 +185,7 @@ func (c *Category) loadRawUrls() error {
 }
 
 func (c *Category) cachedFileName() string {
-	return fmt.Sprintf("%s/%s.cache", config.cache_dir, c.Title)
+	return fmt.Sprintf("%s/%s.cache", *c.cache_dir, c.Title)
 }
 
 func (c *Category) saveCachedUrls() {

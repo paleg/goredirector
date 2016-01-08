@@ -285,7 +285,7 @@ func NewConfig(conf string) (newcfg *Config, err error) {
 			if strings.HasPrefix(splitted_dash[0], "<") {
 				category = strings.Trim(splitted_dash[0], "<>")
 				if category != "SECURITY" {
-					newcfg.Categories[category] = &Category{Title: category, Log: true, Reverse: false, Action: ActionRedir}
+					newcfg.Categories[category] = &Category{Title: category, Log: true, Reverse: false, Action: ActionRedir, cache_dir: &newcfg.cache_dir}
 				}
 			} else {
 				if err = newcfg.SetOpt(category, splitted_dash); err != nil {
