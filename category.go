@@ -110,13 +110,11 @@ func (c *Category) Load() error {
 				RawFilesTime = info.ModTime()
 			}
 		}
-		ErrorLogger.Printf("%v files last modified is %v", c.Title, RawFilesTime)
 
 		var CachedFileTime time.Time
 		if info, err := os.Stat(c.cachedFileName()); err == nil {
 			CachedFileTime = info.ModTime()
 		}
-		ErrorLogger.Printf("%v cache modified is %v", c.Title, CachedFileTime)
 
 		if RawFilesTime.Before(CachedFileTime) {
 			if err := c.loadCachedUrls(); err == nil {
