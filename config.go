@@ -267,7 +267,7 @@ func NewConfig(conf string) (newcfg *Config, err error) {
 
 	newcfg = &Config{LogHost: false, RawChangeLog: true, cache_dir: "/tmp"}
 	newcfg.Categories = make(map[string]*Category)
-	newcfg.AllowURLs = &Category{Title: "ALLOWED_URLS"}
+	newcfg.AllowURLs = &Category{Title: "ALLOWED_URLS", cache_dir: &newcfg.cache_dir}
 	newcfg.Security = &Security{Title: "SECURITY",
 		EnforceHTTPSHostnames:     true,
 		EnforceHTTPSVerifiedCerts: true,
