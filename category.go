@@ -184,7 +184,7 @@ func (c *Category) loadRawUrls() error {
 }
 
 func (c *Category) cachedFileName() string {
-	return fmt.Sprintf("/tmp/goredirector-%s.cache", c.Title)
+	return fmt.Sprintf("%s/%s.cache", config.cache_dir, c.Title)
 }
 
 func (c *Category) saveCachedUrls() {

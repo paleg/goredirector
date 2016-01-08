@@ -20,6 +20,7 @@ type RawChange struct {
 type Config struct {
 	error_log    string
 	change_log   string
+	cache_dir    string
 	ADServer     []string
 	ADUser       string
 	ADPassword   string
@@ -73,6 +74,8 @@ func (c *Config) SetOpt(category string, values []string) (err error) {
 			c.error_log = values[1]
 		case "change_log":
 			c.change_log = values[1]
+		case "cache_dir":
+			c.cache_dir = values[1]
 		case "ad_server":
 			c.ADServer = append(c.ADServer, values[1])
 		case "ad_user":
@@ -262,7 +265,7 @@ func NewConfig(conf string) (newcfg *Config, err error) {
 	}
 	defer file.Close()
 
-	newcfg = &Config{LogHost: false, RawChangeLog: true}
+	newcfg = &Config{LogHost: false, RawChangeLog: true, cache_dir: "/tmp"}
 	newcfg.Categories = make(map[string]*Category)
 	newcfg.AllowURLs = &Category{Title: "ALLOWED_URLS"}
 	newcfg.Security = &Security{Title: "SECURITY",
