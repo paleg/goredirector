@@ -2,10 +2,15 @@ package main
 
 import (
 	"bufio"
+	"bytes"
+	"encoding/gob"
+	"fmt"
+	"io/ioutil"
 	"net"
 	"os"
 	"regexp"
 	"strings"
+	"time"
 )
 
 const (
@@ -94,49 +99,120 @@ func (c *Category) Load() error {
 			ErrorLogger.Printf("Loaded '%+v' category (%v domains)\n", c.Title, len(c.Urls))
 		}()
 
-		c.Urls = make(map[string][]URL)
+		var RawFilesTime time.Time
 		for _, urls_file := range c.UrlsFiles {
-			if file, err := os.Open(urls_file); err != nil {
-				ErrorLogger.Printf("Failed to load urls for '%+v' category: %+v\n", c.Title, err)
-			} else {
-				defer file.Close()
-
-				scanner := bufio.NewScanner(file)
-				for scanner.Scan() {
-					inurl := scanner.Text()
-					if parsed_input_url, err := ParseUrl(inurl); err != nil {
-						ErrorLogger.Printf("Wrong url in '%s' category: %v\n", c.Title, err)
-						continue
-					} else {
-						if urls_in_map, ok := c.Urls[parsed_input_url.Domain]; ok {
-							if urls_in_map[0].Base() {
-								//fmt.Printf("removing %v because of %v\n", parsed_input_url, urls_in_map[0])
-							} else if parsed_input_url.Base() {
-								//fmt.Printf("replacing %v because of %v\n", urls_in_map, parsed_input_url)
-								c.Urls[parsed_input_url.Domain] = []URL{parsed_input_url}
-							} else {
-								add := true
-								for _, url_in_map := range urls_in_map {
-									if url_in_map.EqualTo(parsed_input_url) {
-										//fmt.Printf("removing dublicate %v\n", parsed_input_url)
-										add = false
-										break
-									}
-								}
-								if add {
-									c.Urls[parsed_input_url.Domain] = append(c.Urls[parsed_input_url.Domain], parsed_input_url)
-								}
-							}
-						} else {
-							c.Urls[parsed_input_url.Domain] = []URL{parsed_input_url}
-						}
-					}
-				}
-				if err := scanner.Err(); err != nil {
-					return err
-				}
+			info, err := os.Stat(urls_file)
+			if err != nil {
+				continue
+			}
+			if RawFilesTime.Before(info.ModTime()) {
+				RawFilesTime = info.ModTime()
 			}
 		}
+		ErrorLogger.Printf("%v files last modified is %v", c.Title, RawFilesTime)
+
+		var CachedFileTime time.Time
+		if info, err := os.Stat(c.cachedFileName()); err == nil {
+			CachedFileTime = info.ModTime()
+		}
+		ErrorLogger.Printf("%v cache modified is %v", c.Title, CachedFileTime)
+
+		if RawFilesTime.Before(CachedFileTime) {
+			if err := c.loadCachedUrls(); err == nil {
+				return nil
+			} else {
+				ErrorLogger.Printf("Failed to load cache from %v: %v", c.cachedFileName(), err)
+			}
+		}
+
+		if err := c.loadRawUrls(); err != nil {
+			return err
+		} else {
+			c.saveCachedUrls()
+		}
+	}
+	return nil
+}
+
+func (c *Category) loadRawUrls() error {
+	c.Urls = make(map[string][]URL)
+
+	for _, urls_file := range c.UrlsFiles {
+		if file, err := os.Open(urls_file); err != nil {
+			ErrorLogger.Printf("Failed to load urls for '%+v' category: %+v\n", c.Title, err)
+		} else {
+			defer file.Close()
+			ErrorLogger.Printf("Loading '%v' category from %v", c.Title, urls_file)
+
+			scanner := bufio.NewScanner(file)
+			for scanner.Scan() {
+				inurl := scanner.Text()
+				if parsed_input_url, err := ParseUrl(inurl); err != nil {
+					ErrorLogger.Printf("Wrong url in '%s' category: %v\n", c.Title, err)
+					continue
+				} else {
+					if urls_in_map, ok := c.Urls[parsed_input_url.Domain]; ok {
+						if urls_in_map[0].Base() {
+							//fmt.Printf("removing %v because of %v\n", parsed_input_url, urls_in_map[0])
+						} else if parsed_input_url.Base() {
+							//fmt.Printf("replacing %v because of %v\n", urls_in_map, parsed_input_url)
+							c.Urls[parsed_input_url.Domain] = []URL{parsed_input_url}
+						} else {
+							add := true
+							for _, url_in_map := range urls_in_map {
+								if url_in_map.EqualTo(parsed_input_url) {
+									//fmt.Printf("removing dublicate %v\n", parsed_input_url)
+									add = false
+									break
+								}
+							}
+							if add {
+								c.Urls[parsed_input_url.Domain] = append(c.Urls[parsed_input_url.Domain], parsed_input_url)
+							}
+						}
+					} else {
+						c.Urls[parsed_input_url.Domain] = []URL{parsed_input_url}
+					}
+				}
+			}
+			if err := scanner.Err(); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (c *Category) cachedFileName() string {
+	return fmt.Sprintf("/tmp/goredirector-%s.cache", c.Title)
+}
+
+func (c *Category) saveCachedUrls() {
+	// http://stackoverflow.com/questions/20318445/generic-function-to-store-go-encoded-data
+	buff := new(bytes.Buffer)
+	enc := gob.NewEncoder(buff)
+	if err := enc.Encode(c.Urls); err != nil {
+		ErrorLogger.Printf("Failed to encode '%+v' category: %v", c.Title, err)
+	} else {
+		if err = ioutil.WriteFile(c.cachedFileName(), buff.Bytes(), 0600); err != nil {
+			ErrorLogger.Printf("Failed to create file: %v", err)
+		}
+	}
+}
+
+func (c *Category) loadCachedUrls() error {
+	ErrorLogger.Printf("Loading '%v' category from %v", c.Title, c.cachedFileName())
+	n, err := ioutil.ReadFile(c.cachedFileName())
+	if err != nil {
+		return err
+	}
+
+	p := bytes.NewBuffer(n)
+	dec := gob.NewDecoder(p)
+
+	err = dec.Decode(&c.Urls)
+	if err != nil {
+		return err
 	}
 	return nil
 }
