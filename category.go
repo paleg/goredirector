@@ -93,13 +93,14 @@ func (c *Category) Load() error {
 		defer func() {
 			ErrorLogger.Printf("Loaded '%+v' category (%v domains)\n", c.Title, len(c.Urls))
 		}()
+
+		c.Urls = make(map[string][]URL)
 		for _, urls_file := range c.UrlsFiles {
 			if file, err := os.Open(urls_file); err != nil {
 				ErrorLogger.Printf("Failed to load urls for '%+v' category: %+v\n", c.Title, err)
 			} else {
 				defer file.Close()
 
-				c.Urls = make(map[string][]URL)
 				scanner := bufio.NewScanner(file)
 				for scanner.Scan() {
 					inurl := scanner.Text()
