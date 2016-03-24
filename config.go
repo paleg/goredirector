@@ -17,32 +17,37 @@ type RawChange struct {
 	New string
 }
 
+type ADSettings struct {
+	Site       string
+	Username   string
+	Password   string
+	SearchBase string
+}
+
 type Config struct {
-	error_log    string
-	change_log   string
-	cache_dir    string
-	ADServer     []string
-	ADUser       string
-	ADPassword   string
-	ADSearchBase string
-	ADReload     int
-	ADTicker     *time.Ticker
-	ADTickerQuit chan struct{}
-	LogHost      bool
-	WorkIP       []*net.IPNet
-	work_ip      []string
-	AllowIP      []*net.IPNet
-	allow_ip     []string
-	WorkID       []string
-	work_id      []string
-	AllowID      []string
-	allow_id     []string
-	allow_urls   string
-	AllowURLs    *Category
-	Categories   map[string]*Category
-	RawChanges   []RawChange
-	RawChangeLog bool
-	Security     *Security
+	error_log       string
+	change_log      string
+	cache_dir       string
+	ADDomains       map[string]ADSettings
+	ADDefaultDomain string
+	ADReload        int
+	ADTicker        *time.Ticker
+	ADTickerQuit    chan struct{}
+	LogHost         bool
+	WorkIP          []*net.IPNet
+	work_ip         []string
+	AllowIP         []*net.IPNet
+	allow_ip        []string
+	WorkID          []string
+	work_id         []string
+	AllowID         []string
+	allow_id        []string
+	allow_urls      string
+	AllowURLs       *Category
+	Categories      map[string]*Category
+	RawChanges      []RawChange
+	RawChangeLog    bool
+	Security        *Security
 }
 
 func FilterComments(in []string) (res []string) {
@@ -76,14 +81,18 @@ func (c *Config) SetOpt(category string, values []string) (err error) {
 			c.change_log = values[1]
 		case "cache_dir":
 			c.cache_dir = values[1]
-		case "ad_server":
-			c.ADServer = append(c.ADServer, values[1])
-		case "ad_user":
-			c.ADUser = values[1]
-		case "ad_password":
-			c.ADPassword = values[1]
-		case "ad_searchbase":
-			c.ADSearchBase = values[1]
+		case "ad_domain":
+			domain := strings.Split(values[1], ":")
+			if len(domain) != 4 {
+				ErrorLogger.Printf("Invalid ad_domain: %v\n", values[1])
+				return
+			}
+			c.ADDomains[strings.ToUpper(domain[0])] = ADSettings{Site: domain[1],
+				Username: domain[2], Password: domain[3],
+				SearchBase: "DC=" + strings.Replace(domain[0], ".", ",DC=", -1),
+			}
+		case "ad_default_domain":
+			c.ADDefaultDomain = strings.ToUpper(values[1])
 		case "ad_reload":
 			c.ADReload, err = strconv.Atoi(values[1])
 			if err != nil {
@@ -266,6 +275,7 @@ func NewConfig(conf string) (newcfg *Config, err error) {
 	defer file.Close()
 
 	newcfg = &Config{LogHost: false, RawChangeLog: true, cache_dir: "/tmp"}
+	newcfg.ADDomains = make(map[string]ADSettings)
 	newcfg.Categories = make(map[string]*Category)
 	newcfg.AllowURLs = &Category{Title: "ALLOWED_URLS", cache_dir: &newcfg.cache_dir}
 	newcfg.Security = &Security{Title: "SECURITY",
@@ -293,6 +303,10 @@ func NewConfig(conf string) (newcfg *Config, err error) {
 				}
 			}
 		}
+	}
+	if _, ok := newcfg.ADDomains[newcfg.ADDefaultDomain]; !ok {
+		err = errors.New(fmt.Sprintf("ad default domain '%v' settings are not set", newcfg.ADDefaultDomain))
+		return
 	}
 	return
 }

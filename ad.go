@@ -8,15 +8,27 @@ import (
 	"time"
 )
 
-func (c *Config) ExtendFromAD(list []string) (result []string) {
+func (c *Config) ExtendFromAD(binded_domain string, list []string) (result []string) {
 	for _, s := range list {
 		if strings.HasPrefix(s, "ad:") && len(s) > 3 {
-			group := s[3:]
+			var group, domain string
+			groupAtDomain := strings.Split(s[3:], "@")
+			if len(groupAtDomain) == 1 {
+				group = groupAtDomain[0]
+				domain = c.ADDefaultDomain
+			} else {
+				group = groupAtDomain[0]
+				domain = strings.ToUpper(groupAtDomain[1])
+			}
+			if domain != binded_domain {
+				continue
+			}
+
 			if users, err := adclient.GetUsersInGroup(group); err != nil {
 				ErrorLogger.Printf("Failed to get AD group '%v' members: %v", group, err)
 			} else {
 				for _, user := range users {
-					result = append(result, strings.ToLower(user))
+					result = append(result, strings.ToLower(user)+"@"+domain)
 				}
 			}
 		}
@@ -25,11 +37,9 @@ func (c *Config) ExtendFromAD(list []string) (result []string) {
 }
 
 func (c *Config) UseAD() bool {
-	return c.ADUser != "" &&
-		c.ADPassword != "" &&
-		len(c.ADServer) > 0 &&
-		c.ADSearchBase != "" &&
+	return c.ADDefaultDomain != "" &&
 		c.ADReload != 0
+	return false
 }
 
 func (c *Config) ReloadAD(sync bool) {
@@ -52,26 +62,44 @@ func (c *Config) ReloadADSync() {
 	WGAD.Wait()
 	WGAD.Add(1)
 	defer WGAD.Done()
-	adclient.New()
-	defer adclient.Delete()
-	adclient.Timelimit = 60
-	adclient.Nettimeout = 60
-	if err := adclient.Login(c.ADServer, c.ADUser, c.ADPassword, c.ADSearchBase); err != nil {
-		ErrorLogger.Printf("Failed to AD login: %v", err)
-		return
-	}
 	defer ErrorLogger.Printf("Reloaded AD groups\n")
 
 	workid := c.ExtendFromFile(c.work_id)
-	workid = append(workid, c.ExtendFromAD(c.work_id)...)
+	allowid := c.ExtendFromFile(c.allow_id)
+
+	cat_workids := make(map[string][]string)
+	cat_allowids := make(map[string][]string)
+	for _, cat := range c.Categories {
+		cat_workids[cat.Title] = c.ExtendFromFile(cat.work_id)
+		cat_allowids[cat.Title] = c.ExtendFromFile(cat.allow_id)
+	}
+
+	for domain, settings := range c.ADDomains {
+		adclient.New()
+		adclient.Timelimit = 60
+		adclient.Nettimeout = 60
+		if err := adclient.Login(domain, settings.Username, settings.Password, settings.SearchBase); err != nil {
+			ErrorLogger.Printf("Failed to AD login: %v", err)
+			return
+		}
+		ErrorLogger.Printf("Logged on to %v", adclient.BindedUri())
+
+		workid = append(workid, c.ExtendFromAD(domain, c.work_id)...)
+		allowid = append(allowid, c.ExtendFromAD(domain, c.work_id)...)
+
+		for _, cat := range c.Categories {
+			cat_workids[cat.Title] = append(cat_workids[cat.Title], c.ExtendFromAD(domain, cat.work_id)...)
+			cat_allowids[cat.Title] = append(cat_allowids[cat.Title], c.ExtendFromAD(domain, cat.allow_id)...)
+		}
+		adclient.Delete()
+	}
+
 	sort.Strings(workid)
 	if !reflect.DeepEqual(c.WorkID, workid) {
 		c.WorkID = workid
 		ErrorLogger.Printf("extended c.WorkID to %v", c.WorkID)
 	}
 
-	allowid := c.ExtendFromFile(c.allow_id)
-	allowid = append(allowid, c.ExtendFromAD(c.work_id)...)
 	sort.Strings(allowid)
 	if !reflect.DeepEqual(c.AllowID, allowid) {
 		c.AllowID = allowid
@@ -79,19 +107,15 @@ func (c *Config) ReloadADSync() {
 	}
 
 	for _, cat := range c.Categories {
-		cat_workid := c.ExtendFromFile(cat.work_id)
-		cat_workid = append(cat_workid, c.ExtendFromAD(cat.work_id)...)
-		sort.Strings(cat_workid)
-		if !reflect.DeepEqual(cat.WorkID, cat_workid) {
-			cat.WorkID = cat_workid
+		sort.Strings(cat_workids[cat.Title])
+		sort.Strings(cat_allowids[cat.Title])
+
+		if !reflect.DeepEqual(cat.WorkID, cat_workids[cat.Title]) {
+			cat.WorkID = cat_workids[cat.Title]
 			ErrorLogger.Printf("extended %v.WorkID to %v", cat.Title, cat.WorkID)
 		}
-
-		cat_allowid := c.ExtendFromFile(cat.allow_id)
-		cat_allowid = append(cat_allowid, c.ExtendFromAD(cat.allow_id)...)
-		sort.Strings(cat_allowid)
-		if !reflect.DeepEqual(cat.AllowID, cat_allowid) {
-			cat.AllowID = cat_allowid
+		if !reflect.DeepEqual(cat.AllowID, cat_allowids[cat.Title]) {
+			cat.AllowID = cat_allowids[cat.Title]
 			ErrorLogger.Printf("extended %v.AllowID to %v", cat.Title, cat.AllowID)
 		}
 	}

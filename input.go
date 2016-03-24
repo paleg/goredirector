@@ -44,7 +44,16 @@ func ParseInput(input string) (i Input, err error) {
 		i.User = splitted[3]
 		err = nil
 	}
-	i.User = strings.ToLower(i.User)
+	if !config.UseAD() {
+		i.User = strings.ToLower(i.User)
+	} else {
+		if indx := strings.Index(i.User, "@"); indx == -1 {
+			i.User = strings.ToLower(i.User) + "@" + config.ADDefaultDomain
+		} else {
+			userAtDomain := strings.Split(i.User, "@")
+			i.User = strings.ToLower(userAtDomain[0]) + "@" + strings.ToUpper(userAtDomain[1])
+		}
+	}
 	i.Method = splitted[4]
 	return
 }
