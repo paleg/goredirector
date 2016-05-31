@@ -102,6 +102,13 @@ func Checker(id string, in chan *Input, out chan string) {
 			}
 		}
 
+		if len(config.AllowPCRE.Pcre) > 0 {
+			if hit, hitrule := config.AllowPCRE.CheckPCRE(input.RawUrl); hit {
+				Pass(id, out, fmt.Sprintf("global allow_pcre (%s)", hitrule))
+				continue
+			}
+		}
+
 		if input.Method == "CONNECT" && config.Security.Policy != CheckSecuriry_Off {
 			// Security.Redirect could not redirect (when running in LogOnly mode)
 			// so in such cases check rest of rules

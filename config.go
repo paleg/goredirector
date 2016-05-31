@@ -43,7 +43,9 @@ type Config struct {
 	AllowID         []string
 	allow_id        []string
 	allow_urls      string
+	allow_pcre      string
 	AllowURLs       *Category
+	AllowPCRE       *Category
 	Categories      map[string]*Category
 	RawChanges      []RawChange
 	RawChangeLog    bool
@@ -108,6 +110,8 @@ func (c *Config) SetOpt(category string, values []string) (err error) {
 			c.allow_id = append(c.allow_id, values[1])
 		case "allow_urls":
 			c.allow_urls = values[1]
+		case "allow_pcre":
+			c.allow_pcre = values[1]
 		case "write_hostname_to_log":
 			c.LogHost = true
 		case "raw_change":
@@ -246,6 +250,12 @@ func (c *Config) LoadFiles() {
 		c.AllowURLs.Load()
 	}
 
+	if c.allow_pcre != "" {
+		WGCategories.Add(1)
+		c.AllowPCRE.PcreFiles = append(c.AllowPCRE.PcreFiles, c.allow_pcre)
+		c.AllowPCRE.Load()
+	}
+
 	c.WorkID = c.ExtendFromFile(c.work_id)
 	c.WorkIP = c.ExtendIPs(c.ExtendFromFile(c.work_ip))
 	c.AllowID = c.ExtendFromFile(c.allow_id)
@@ -278,6 +288,7 @@ func NewConfig(conf string) (newcfg *Config, err error) {
 	newcfg.ADDomains = make(map[string]ADSettings)
 	newcfg.Categories = make(map[string]*Category)
 	newcfg.AllowURLs = &Category{Title: "ALLOWED_URLS", cache_dir: &newcfg.cache_dir}
+	newcfg.AllowPCRE = &Category{Title: "ALLOWED_PCRE", cache_dir: &newcfg.cache_dir}
 	newcfg.Security = &Security{Title: "SECURITY",
 		EnforceHTTPSHostnames:     true,
 		EnforceHTTPSVerifiedCerts: true,
