@@ -71,12 +71,12 @@ func (c *Category) Load() error {
 	defer WGCategories.Done()
 
 	if len(c.PcreFiles) != 0 {
+		//ErrorLogger.Printf("Loading '%+v' pcre from '%+v'\n", c.Title, c.PcreFiles)
 		defer func() {
 			ErrorLogger.Printf("Loaded '%+v' category (%v pcre)\n", c.Title, len(c.Pcre))
 		}()
 
 		for _, pcre_file := range c.PcreFiles {
-			//ErrorLogger.Printf("Loading '%+v' pcre from '%+v'\n", c.Title, pcre_file)
 			if file, err := os.Open(pcre_file); err != nil {
 				ErrorLogger.Printf("Failed to load pcre for '%+v' category: %+v\n", c.Title, err)
 			} else {
@@ -94,8 +94,8 @@ func (c *Category) Load() error {
 		}
 	}
 
-	//ErrorLogger.Printf("Loading '%+v' urls from '%+v'\n", c.Title, c.UrlsFile)
 	if len(c.UrlsFiles) != 0 {
+		//ErrorLogger.Printf("Loading '%+v' urls from '%+v'\n", c.Title, c.UrlsFiles)
 		defer func() {
 			ErrorLogger.Printf("Loaded '%+v' category (%v domains)\n", c.Title, len(c.Urls))
 		}()

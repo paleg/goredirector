@@ -42,8 +42,8 @@ type Config struct {
 	work_id         []string
 	AllowID         []string
 	allow_id        []string
-	allow_urls      string
-	allow_pcre      string
+	allow_urls      []string
+	allow_pcre      []string
 	AllowURLs       *Category
 	AllowPCRE       *Category
 	Categories      map[string]*Category
@@ -109,9 +109,9 @@ func (c *Config) SetOpt(category string, values []string) (err error) {
 		case "allow_id":
 			c.allow_id = append(c.allow_id, values[1])
 		case "allow_urls":
-			c.allow_urls = values[1]
+			c.allow_urls = append(c.allow_urls, values[1])
 		case "allow_pcre":
-			c.allow_pcre = values[1]
+			c.allow_pcre = append(c.allow_pcre, values[1])
 		case "write_hostname_to_log":
 			c.LogHost = true
 		case "raw_change":
@@ -244,15 +244,15 @@ func (c *Config) ExtendFromFile(list []string) (result []string) {
 }
 
 func (c *Config) LoadFiles() {
-	if c.allow_urls != "" {
+	if len(c.allow_urls) > 0 {
 		WGCategories.Add(1)
-		c.AllowURLs.UrlsFiles = append(c.AllowURLs.UrlsFiles, c.allow_urls)
+		c.AllowURLs.UrlsFiles = append(c.AllowURLs.UrlsFiles, c.allow_urls...)
 		c.AllowURLs.Load()
 	}
 
-	if c.allow_pcre != "" {
+	if len(c.allow_pcre) > 0 {
 		WGCategories.Add(1)
-		c.AllowPCRE.PcreFiles = append(c.AllowPCRE.PcreFiles, c.allow_pcre)
+		c.AllowPCRE.PcreFiles = append(c.AllowPCRE.PcreFiles, c.allow_pcre...)
 		c.AllowPCRE.Load()
 	}
 
