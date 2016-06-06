@@ -1,0 +1,145 @@
+##############################################################
+## If you make changes in this file, you must:              ##
+# restart squid with: squid -k reconfigure                  ##
+# or                                                        ##
+# send SIGNHUP to redirector: killall -HUP goredirector     ##
+##############################################################   
+
+##############################################################
+##                       HELP                               ##
+##############################################################
+# Globals options:
+# ================
+#
+# error_log filename    # Log file for error and startup messages.
+#                       # Comment for turn off
+# change_log filename   # Log file of change contest.
+#                       # Comment for turn off
+# cache_dir dirname/    # directory for storing compiled ban lists (/tmp by default)
+#
+# work_ip IP            # Ip adress or network
+# work_ip IP/MASK       # or file with ip for
+# work_ip f:/path/file  # who redirector work
+#
+# allow_ip IP           # Ip adress or network
+# allow_ip IP/MASK      # or file with ip for
+# allow_ip f:/path/file # who don't change any content
+#
+#
+# work_id login            # login or file with logins
+# work_id f:/path/file     # for who redirector work
+#
+# allow_id login           # login or file with logins
+# allow_id f:/path/file    # for who don't change any content
+#
+# allow_urls /path/file    # file with urls to don't redirect (can be specified several times)
+# allow_pcre /path/file    # file with pcre's to don't redirect (can be specified several times)
+#
+# raw_change <from> <to>   # Change <from> to <to> in url
+# raw_log off              # Don't write to log changes from raw_change option
+#
+# write_hostname_to_log on # Write client hostname to change log
+#
+# ad_domain DOMAIN1.COM:SITE:USER:PASS     # Active Directory domain settings:
+#                                            domain name, site name (can be empty), username and password for ldap binding
+# ad_domain DOMAIN2.COM::USER:PASS         # Several directives allows to check users agains multiply domains
+# ad_default_domain DOMAIN.COM             # Default domain for users without domain suffix
+# ad_reload SECONDS                        # Timeout for reloading Active Directory group information
+#####################################################################
+#
+# Sections options:  all parametrs work only for ONE section
+# =================
+# <NAME>                # Header for section
+#
+# ban_dir dirname       # Dir with rules for this section (can be specified several times)
+# urls_file             # File with urls for this section (can be specified several times)
+# pcre_file             # File with pcre's for this section (can be specified several times)
+# url http://host/file  # url to replace
+#                       # May use: url http://host/file?var=#URL#&var2=#IP#&i=#IDENT#&m=#METHOD#&sec=#SECTION#
+#                       # #URL# #IP# #IDENT# #METHOD# #SECTION# will be change by redirector
+#
+# work_ip IP            # Ip adress(network)
+# work_ip IP/MASK       # or file with ip for
+# work_ip f:/path/file  # who section work
+#
+# allow_ip IP           # Ip adress(network)
+# allow_ip IP/MASK      # or file with ip for
+# allow_ip f:/path/file # who section don't work
+#
+#
+# work_id login         # login or file with logins
+# work_id f:/path/file  # for who section work
+#
+# allow_id login                    # login or file with logins
+# allow_id f:/path/file             # or Active Director group
+# allow_id ad:group@DOMAIN1.COM     # for whom section will not work.
+# allow_id ad:group                 # group without domain will be checked against ad_default_domain
+# 
+# log off               # Not write to log changes from this section
+# reverse               # Reverse result of search in ban dir
+# action pass           # Pass request
+#
+#############################################################
+
+error_log /usr/local/redirector/log/redirector.err
+change_log /usr/local/redirector/log/redirector.log
+cache_dir /usr/local/redirector/cache
+
+#allow_urls /usr/local/redirector/banlists/allow_urls
+#allow_urls /usr/local/redirector/banlists/another_allow_urls
+#allow_pcre /usr/local/redirector/banlists/allow_pcre
+#write_hostname_to_log on
+
+#ad_domain DOMAIN1.COM::domain1.user:PassW0Rd
+#ad_domain DOMAIN2.COM:CLOSEST_SITENAME:domain2.user:PassW0Rd
+#ad_default_domain DOMAIN2.COM
+#ad_reload 600
+
+<BANNER>  
+ban_dir /usr/local/redirector/banlists/banners
+url http://127.0.0.1/ban/1x1.gif
+#log off
+
+<PORNO>  
+ban_dir  /usr/local/redirector/banlists/porno
+url http://127.0.0.1/ban/block.cgi?clientname=#IDENT#&targetgroup=#SECTION#&url=#URL#&method=#METHOD#
+allow_id ad:InetPorno@DOMAIN2.COM
+allow_id ad:InetRelaxation
+
+<AUDIO-VIDEO>  
+urls_file /usr/local/redirector/banlists/audio-video.urls
+urls_file /usr/local/redirector/banlists/mp3.urls
+url http://127.0.0.1/ban/mp3.html
+allow_id ad:InetAudioVideo
+
+<JS>
+urls_file /usr/local/redirector/banlists/js.urls
+pcre_file /usr/local/redirector/banlists/js.pcre
+url http://127.0.0.1/ban/js.js
+#log off
+
+# TODO:
+#<SECURITY>
+#url http://127.0.0.1/ban/block.cgi?clientname=#IDENT#&targetgroup=#SECTION#&url=#URL#&method=#METHOD#
+#    # valid options for check-proxy-tunnels are
+#    # off             no checks are performed
+#    # queue-checks    checks are performed in the background
+#    # aggressive      checks are performed immediately
+#    # log-only        checks are performed in the background but tunnels are not blocked
+#    #policy aggressive
+#    #policy log-only
+#    policy off
+#
+#    check-proxy-tunnels on
+#    enforce-https-with-hostname on
+#    enforce-https-official-certificate on
+#    allow-unknown-protocol-over-https on
+#    #allow_urls allowed/https.txt
+#    https-prohibit-insecure-sslv2 on
+#    allow-aim-over-https on
+#    allow-gtalk-over-https on
+#    allow-skype-over-https on
+#    allow-yahoomsg-over-https on
+#    allow-fb-chat-over-https on
+#    allow-citrixonline-over-https on
+#    allow-unknown-protocol-over-https on
