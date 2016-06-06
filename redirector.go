@@ -69,7 +69,7 @@ func load_config(sync bool) error {
 		newcfg.ReloadAD(sync)
 		newcfg.LoadCategories(sync)
 		// for immediate GC old config
-		// oldconfig can be nil on inital config load (on start)
+		// oldconfig can be nil on initial config load (on start)
 		var oldconfig *Config
 		if oldconfig, config = config, newcfg; oldconfig != nil {
 			oldconfig.StopReloadAD()

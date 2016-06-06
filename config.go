@@ -315,7 +315,7 @@ func NewConfig(conf string) (newcfg *Config, err error) {
 			}
 		}
 	}
-	if _, ok := newcfg.ADDomains[newcfg.ADDefaultDomain]; !ok {
+	if _, ok := newcfg.ADDomains[newcfg.ADDefaultDomain]; newcfg.ADDefaultDomain != "" && !ok {
 		err = errors.New(fmt.Sprintf("ad default domain '%v' settings are not set", newcfg.ADDefaultDomain))
 		return
 	}
