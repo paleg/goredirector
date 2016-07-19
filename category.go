@@ -19,6 +19,7 @@ const (
 )
 
 type Category struct {
+	Loaded    bool
 	Title     string
 	UrlsFiles []string
 	PcreFiles []string
@@ -40,6 +41,9 @@ type Category struct {
 }
 
 func (c *Category) CheckPCRE(inurl string) (bool, int) {
+	if !c.Loaded {
+		return false, 0
+	}
 	for i, re := range c.Pcre {
 		if re.MatchString(inurl) {
 			return true, i + 1
@@ -49,6 +53,9 @@ func (c *Category) CheckPCRE(inurl string) (bool, int) {
 }
 
 func (c *Category) CheckURL(inurl *URL) (bool, string) {
+	if !c.Loaded {
+		return false, ""
+	}
 	if urls, ok := c.Urls[inurl.Domain]; !ok {
 		return false, ""
 	} else {
@@ -68,6 +75,8 @@ func (c *Category) CheckURL(inurl *URL) (bool, string) {
 }
 
 func (c *Category) Load() error {
+	c.Loaded = false
+
 	defer WGCategories.Done()
 
 	if len(c.PcreFiles) != 0 {
@@ -130,6 +139,8 @@ func (c *Category) Load() error {
 			c.saveCachedUrls()
 		}
 	}
+
+	c.Loaded = true
 	return nil
 }
 

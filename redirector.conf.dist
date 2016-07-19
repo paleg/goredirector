@@ -56,7 +56,7 @@
 # pcre_file             # File with pcre's for this section (can be specified several times)
 # url http://host/file  # url to replace
 #                       # May use: url http://host/file?var=#URL#&var2=#IP#&i=#IDENT#&m=#METHOD#&sec=#SECTION#
-#                       # #URL# #IP# #IDENT# #METHOD# #SECTION# will be change by redirector
+#                       # #URL# #IP# #IDENT# #METHOD# #SECTION# will be changed by redirector
 #
 # work_ip IP            # Ip adress(network)
 # work_ip IP/MASK       # or file with ip for
@@ -75,7 +75,7 @@
 # allow_id ad:group@DOMAIN1.COM     # for whom section will not work.
 # allow_id ad:group                 # group without domain will be checked against ad_default_domain
 # 
-# log off               # Not write to log changes from this section
+# log off               # Do not write to log changes from this section
 # reverse               # Reverse result of search in ban dir
 # action pass           # Pass request
 #
