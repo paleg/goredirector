@@ -53,6 +53,7 @@ func (c *Category) CheckPCRE(inurl string) (bool, int) {
 }
 
 func (c *Category) CheckURL(inurl *URL) (bool, string) {
+	//fmt.Printf("%v (%v): %+v\n", c.Title, c.Loaded, inurl)
 	if !c.Loaded {
 		return false, ""
 	}
@@ -76,6 +77,9 @@ func (c *Category) CheckURL(inurl *URL) (bool, string) {
 
 func (c *Category) Load() error {
 	c.Loaded = false
+	defer func() {
+		c.Loaded = true
+	}()
 
 	defer WGCategories.Done()
 
@@ -140,7 +144,6 @@ func (c *Category) Load() error {
 		}
 	}
 
-	c.Loaded = true
 	return nil
 }
 
