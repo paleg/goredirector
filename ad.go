@@ -24,7 +24,7 @@ func (c *Config) ExtendFromAD(binded_domain string, list []string) (result []str
 				continue
 			}
 
-			if users, err := adclient.GetUsersInGroup(group); err != nil {
+			if users, err := adclient.GetUsersInGroup(group, true); err != nil {
 				ErrorLogger.Printf("Failed to get AD group '%v' members: %v", group, err)
 			} else {
 				for _, user := range users {
