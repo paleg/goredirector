@@ -75,10 +75,17 @@ func (c *Config) ReloadADSync() {
 	}
 
 	for domain, settings := range c.ADDomains {
+		params := adclient.DefaultADConnParams()
+		params.Domain = domain
+		//params.Site =
+		params.Binddn = settings.Username
+		params.Bindpw = settings.Password
+		params.Search_base = settings.SearchBase
+		params.Timelimit = 60
+		params.Nettimeout = 60
+
 		adclient.New()
-		adclient.Timelimit = 60
-		adclient.Nettimeout = 60
-		if err := adclient.Login(domain, settings.Username, settings.Password, settings.SearchBase); err != nil {
+		if err := adclient.Login(params); err != nil {
 			ErrorLogger.Printf("Failed to AD login: %v", err)
 			return
 		}
