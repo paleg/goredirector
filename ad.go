@@ -77,7 +77,7 @@ func (c *Config) ReloadADSync() {
 	for domain, settings := range c.ADDomains {
 		params := adclient.DefaultADConnParams()
 		params.Domain = domain
-		//params.Site =
+		params.Site = settings.Site
 		params.Binddn = settings.Username
 		params.Bindpw = settings.Password
 		params.Search_base = settings.SearchBase
